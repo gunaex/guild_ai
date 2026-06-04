@@ -152,6 +152,23 @@ export type GuildAiBackupReadiness = {
   nextActions: string[];
 };
 
+export type GuildAiLaunchReadiness = {
+  guildId: string;
+  generatedAt: number;
+  status: "ready_for_today" | "needs_attention" | "blocked";
+  score: number;
+  fullVisionPercent: number;
+  localMvpPercent: number;
+  gates: Array<{
+    key: "template" | "runtime" | "accounting" | "smoke" | "memory" | "hr" | "deployment" | "backup";
+    label: string;
+    status: "ready" | "watch" | "blocked";
+    detail: string;
+    critical: boolean;
+  }>;
+  nextActions: string[];
+};
+
 export type GuildAiHrReview = {
   id: number;
   guild_id: string;
@@ -564,6 +581,12 @@ export async function getGuildAiBackupReadiness(
   guildId: string,
 ): Promise<{ ok: boolean; readiness: GuildAiBackupReadiness }> {
   return request(`/api/guild-ai/backup/${encodeURIComponent(guildId)}/readiness`);
+}
+
+export async function getGuildAiLaunchReadiness(
+  guildId: string,
+): Promise<{ ok: boolean; readiness: GuildAiLaunchReadiness }> {
+  return request(`/api/guild-ai/launch/${encodeURIComponent(guildId)}/readiness`);
 }
 
 export async function bootstrapGuildAiOllamaRuntime(

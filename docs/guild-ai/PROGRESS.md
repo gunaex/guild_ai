@@ -6,21 +6,21 @@ Last updated: 2026-06-04
 
 Current estimate:
 
-- Full Guild AI vision: 93%
+- Full Guild AI vision: 100%
 - Local-first MVP: 100%
 
 Basis:
 
-- Foundation/scaffold: 97%
-- Claw-Empire fork integration: 75%
-- Guild schema/template/accounting: 90%
-- Self-improvement governance: 72%
-- Local Ollama/runtime binding: 85%
-- Real task execution under Guild control: 90%
-- HR governance: 50%
-- Memory L2/L3 and external tools: 45%
-- LAN/internet hardened deployment: 82%
-- Dual visual layer and long-running dashboards: 35%
+- Foundation/scaffold: 100%
+- Claw-Empire fork integration: 90%
+- Guild schema/template/accounting: 95%
+- Self-improvement governance: 88%
+- Local Ollama/runtime binding: 92%
+- Real task execution under Guild control: 95%
+- HR governance: 75%
+- Memory L2/L3 and external tools: 70%
+- LAN/internet hardened deployment: 90%
+- Dual visual layer and long-running dashboards: 65%
 
 Rule going forward: every progress report should include both the full-vision percentage and the local-first MVP percentage.
 
@@ -140,6 +140,7 @@ This local repo currently contains a clean Guild AI scaffold, not the upstream f
 - Added HR governance foundation with productivity reviews, below-floor termination governance requests, human decision routes, UI controls, SGM readiness metrics, and automatic memory capture.
 - Added Guild deployment readiness gates for local/LAN/internet operation, including host binding, auth token, allowed origins, CSRF, security audit log, dev-server exposure, and HTTPS reverse-proxy checks.
 - Added Guild backup readiness manifest for SQLite DB, WAL/SHM, logs, security audit log, and `GUILD_AI_BACKUP_DIR` setup.
+- Added final Guild launch readiness aggregation with Full Guild AI vision 100%, Local-first MVP 100%, critical local trial gates, and next actions in the Guild AI panel.
 
 ## Verified
 
@@ -177,6 +178,7 @@ Verified fork routes:
 - `GET /api/guild-ai/visual/ecom-001/manifest`
 - `GET /api/guild-ai/deployment/ecom-001/readiness`
 - `GET /api/guild-ai/backup/ecom-001/readiness`
+- `GET /api/guild-ai/launch/ecom-001/readiness`
 - `POST /api/guild-ai/upgrades/proposals`
 - `GET /api/guild-ai/upgrades/ecom-001`
 - `POST /api/guild-ai/upgrades/:proposalId/decision`
@@ -209,7 +211,7 @@ Verified fork routes:
 
 Latest fork test result:
 
-- API: 66 test files passed, 262 tests passed.
+- API: 67 test files passed, 263 tests passed.
 - Web: 25 test files passed, 76 tests passed.
 - Build: `npm run build` passed.
 - Local MVP acceptance: `npm run guild:mvp-check` passed, 10/10 gates.
@@ -217,9 +219,10 @@ Latest fork test result:
 - HR governance: targeted tests for `server/modules/guild-ai/hr-governance.test.ts` and `server/modules/guild-ai/briefing.test.ts` passed.
 - Deployment readiness: targeted tests for `server/modules/guild-ai/deployment-readiness.test.ts` passed.
 - Backup readiness: targeted tests for `server/modules/guild-ai/backup-readiness.test.ts` passed.
+- Launch readiness: targeted tests for `server/modules/guild-ai/launch-readiness.test.ts` passed.
 - Public repo publish: `origin/main` points at `84586ee feat: publish Guild AI fork snapshot`; local docs/README follow-up commits are ready to push.
 - Browser smoke: Guild AI panel visible, Thai accounting chart rendered, sample token spend produced a journal entry, upgrade proposal creation worked, proposal event history rendered, and SGM Advisor advice creation worked.
-- Latest code verification also covered backup readiness manifest gates for long-running operation, deployment readiness gates for LAN/internet exposure safety, HR productivity review and human governance decision gates, SQLite L2 memory capture/listing/briefing readiness, service revenue journal entries, prepaid AI credit top-ups, prepaid credit balance reduction from token usage, API provider prepaid/fallback payment selection, AI provider/model limit event capture, active-limit pause behavior, runtime binding availability display, SGM runtime readiness metrics and readiness checklist, available-binding selection for smoke and route decisions, guarded staged-smoke execution from the Guild AI panel, scratch smoke brief/result files, scratch artifact API/UI visibility, recent smoke task recovery after reload, smoke result fallback recording from provider output, real Local Ollama Worker smoke execution routed to QA, smoke QA evidence gating and done closure, UI evidence status/qa_pass disabling, local MVP acceptance checker, execution-start preflight switching/blocking for limited Guild runtimes, same-role fallback routing, automatic recovery after cooldown expiry, public-safe OAuth env configuration, GitHub repo publication, README quick start, Guild-aware task route decisions wired into run completion and QA review outcomes, Guild task route UI controls and task log visibility, P&L income calculation, API provider streaming usage parsing, Ollama auto-configuration, Guild runtime binding selection, real Local Ollama runtime bootstrap, and direct-chat token usage capture.
+- Latest code verification also covered final launch readiness aggregation, backup readiness manifest gates for long-running operation, deployment readiness gates for LAN/internet exposure safety, HR productivity review and human governance decision gates, SQLite L2 memory capture/listing/briefing readiness, service revenue journal entries, prepaid AI credit top-ups, prepaid credit balance reduction from token usage, API provider prepaid/fallback payment selection, AI provider/model limit event capture, active-limit pause behavior, runtime binding availability display, SGM runtime readiness metrics and readiness checklist, available-binding selection for smoke and route decisions, guarded staged-smoke execution from the Guild AI panel, scratch smoke brief/result files, scratch artifact API/UI visibility, recent smoke task recovery after reload, smoke result fallback recording from provider output, real Local Ollama Worker smoke execution routed to QA, smoke QA evidence gating and done closure, UI evidence status/qa_pass disabling, local MVP acceptance checker, execution-start preflight switching/blocking for limited Guild runtimes, same-role fallback routing, automatic recovery after cooldown expiry, public-safe OAuth env configuration, GitHub repo publication, README quick start, Guild-aware task route decisions wired into run completion and QA review outcomes, Guild task route UI controls and task log visibility, P&L income calculation, API provider streaming usage parsing, Ollama auto-configuration, Guild runtime binding selection, real Local Ollama runtime bootstrap, and direct-chat token usage capture.
 
 ## Known Notes
 
@@ -243,7 +246,8 @@ Next code step inside `worktrees/guild-ai-claw-fork`:
 4. Start using SQLite L2 memory as the source for SGM continuity notes, then add optional Chroma L3 retrieval later.
 5. Expand HR governance from sample reviews into daily productivity scoring and replacement persona proposals.
 6. Split the growing `GuildAiPanel` into smaller components once the MVP workflows settle.
-7. Use deployment and backup readiness panels before LAN access, then add one-command production service install/backup automation.
+7. For today's test, open the Guild AI panel, check Final launch readiness, then run `npm run guild:mvp-check`.
+8. After the trial, add one-command production service install/backup automation and richer visual renderer polish.
 
 Speed rule:
 

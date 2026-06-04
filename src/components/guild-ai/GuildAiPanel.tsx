@@ -13,6 +13,7 @@ import {
   getGuildAiDeploymentReadiness,
   getGuildAiTaskArtifacts,
   getGuildAiHealth,
+  getGuildAiLaunchReadiness,
   getGuildAiTaskLogs,
   getGuildAiVisualManifest,
   listGuildAiAccounts,
@@ -48,6 +49,7 @@ import {
   type GuildAiUpgradeEvent,
   type GuildAiVisualManifest,
   type GuildAiJournalEntry,
+  type GuildAiLaunchReadiness,
   type GuildAiLimitEvent,
   type GuildAiMemoryNamespace,
   type GuildAiMemoryRecord,
@@ -85,6 +87,7 @@ type LoadState = {
   visualManifest: GuildAiVisualManifest | null;
   deploymentReadiness: GuildAiDeploymentReadiness | null;
   backupReadiness: GuildAiBackupReadiness | null;
+  launchReadiness: GuildAiLaunchReadiness | null;
   briefing: GuildAiSgmBriefing | null;
   pendingUpgrades: number;
   vectorDbProvider: string;
@@ -147,6 +150,7 @@ const emptyState: LoadState = {
   visualManifest: null,
   deploymentReadiness: null,
   backupReadiness: null,
+  launchReadiness: null,
   briefing: null,
   pendingUpgrades: 0,
   vectorDbProvider: "none",
@@ -329,6 +333,7 @@ export default function GuildAiPanel() {
         visualManifest,
         deploymentReadiness,
         backupReadiness,
+        launchReadiness,
         briefing,
       ] = await Promise.all([
         getGuildAiHealth(),
@@ -348,6 +353,7 @@ export default function GuildAiPanel() {
         getGuildAiVisualManifest(guildId),
         getGuildAiDeploymentReadiness(guildId),
         getGuildAiBackupReadiness(guildId),
+        getGuildAiLaunchReadiness(guildId),
         getGuildAiBriefing(guildId),
       ]);
       setState({
@@ -369,6 +375,7 @@ export default function GuildAiPanel() {
         visualManifest: visualManifest.manifest,
         deploymentReadiness: deploymentReadiness.readiness,
         backupReadiness: backupReadiness.readiness,
+        launchReadiness: launchReadiness.readiness,
         briefing: briefing.briefing,
         pendingUpgrades: health.pendingUpgrades,
         vectorDbProvider: health.vectorDbProvider,
@@ -860,6 +867,53 @@ export default function GuildAiPanel() {
         <Metric label="Runtime ready" value={state.briefing?.metrics.runtimeAvailable ?? 0} />
         <Metric label="Runtime limited" value={state.briefing?.metrics.runtimeLimited ?? 0} />
       </div>
+
+      {state.launchReadiness && (
+        <section className="rounded-lg border border-emerald-500/30 bg-emerald-950/20">
+          <div className="flex flex-col gap-2 border-b border-emerald-500/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="font-semibold text-emerald-100">Final launch readiness</h3>
+              <p className="mt-0.5 text-xs text-emerald-100/70">
+                Full vision {state.launchReadiness.fullVisionPercent}% / Local-first MVP {state.launchReadiness.localMvpPercent}%
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(state.launchReadiness.status === "blocked" ? "rejected" : state.launchReadiness.status === "needs_attention" ? "needs_info" : "completed")}`}>
+                {state.launchReadiness.status}
+              </span>
+              <span className="rounded-full border border-emerald-400/40 px-2 py-0.5 text-[11px] text-emerald-100">
+                score {state.launchReadiness.score}%
+              </span>
+            </div>
+          </div>
+          <div className="grid gap-4 p-4 lg:grid-cols-[1fr_320px]">
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+              {state.launchReadiness.gates.map((gate) => (
+                <div key={gate.key} className="rounded-lg border border-emerald-500/20 bg-slate-950/70 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-sm font-medium text-slate-100">{gate.label}</div>
+                    <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(gate.status === "blocked" ? "rejected" : gate.status)}`}>
+                      {gate.status}
+                    </span>
+                  </div>
+                  <div className="mt-2 text-xs leading-5 text-slate-400">{gate.detail}</div>
+                  {gate.critical && <div className="mt-2 text-[11px] uppercase tracking-wide text-emerald-300">critical</div>}
+                </div>
+              ))}
+            </div>
+            <div className="rounded-lg border border-emerald-500/20 bg-slate-950/70 p-3">
+              <div className="text-xs font-medium uppercase tracking-wide text-emerald-300">Next actions</div>
+              <div className="mt-2 grid gap-2">
+                {state.launchReadiness.nextActions.map((action) => (
+                  <div key={action} className="rounded-md bg-slate-900 px-3 py-2 text-xs leading-5 text-slate-300">
+                    {action}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="rounded-lg border border-slate-700/70 bg-slate-950/70">
         <div className="flex flex-col gap-2 border-b border-slate-700/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">

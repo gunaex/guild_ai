@@ -23,6 +23,7 @@ import {
 import {
   buildGuildDeploymentReadiness,
 } from "../guild-ai/deployment-readiness.ts";
+import { buildGuildLaunchReadiness } from "../guild-ai/launch-readiness.ts";
 import {
   decideGuildGovernanceRequest,
   listGuildGovernanceRequests,
@@ -188,6 +189,34 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
         logsDir: ctx.logsDir,
         backupDir: process.env.GUILD_AI_BACKUP_DIR ?? null,
       }),
+    });
+  });
+
+  app.get("/api/guild-ai/launch/:guildId/readiness", (req, res) => {
+    const guildId = req.params.guildId;
+    const generatedAt = nowMs();
+    const deployment = buildGuildDeploymentReadiness({
+      guildId,
+      generatedAt,
+      host: HOST,
+      port: PORT,
+      apiAuthToken: API_AUTH_TOKEN,
+      allowedOrigins: ALLOWED_ORIGINS,
+      allowedOriginSuffixes: ALLOWED_ORIGIN_SUFFIXES,
+      logsDir: ctx.logsDir,
+      viteDev: Boolean(process.env.VITE_DEV),
+      internetProxyEnabled: process.env.GUILD_AI_HTTPS_PROXY === "1",
+    });
+    const backup = buildGuildBackupReadiness({
+      guildId,
+      generatedAt,
+      dbPath: ctx.dbPath,
+      logsDir: ctx.logsDir,
+      backupDir: process.env.GUILD_AI_BACKUP_DIR ?? null,
+    });
+    res.json({
+      ok: true,
+      readiness: buildGuildLaunchReadiness({ db, guildId, generatedAt, deployment, backup }),
     });
   });
 

@@ -26,6 +26,7 @@ Guild AI ตอนนี้คือบริษัท AI local-first ที่�
 - มี HR governance review และ human decision gate ก่อน termination/replacement
 - มี Deployment readiness สำหรับเช็คก่อนเปิดใช้งานบน LAN/internet
 - มี Backup readiness สำหรับเช็คไฟล์สำรองข้อมูลของระบบระยะยาว
+- มี Final launch readiness สำหรับดู Full vision/MVP progress และ gate ก่อนเริ่มทดสอบวันนี้
 
 คิดง่ายๆ คือ ตอนนี้เรามี "บริษัท AI local ตัวแรก" ที่ใช้ทดสอบงาน, governance, accounting, และ runtime control ได้แล้ว
 
@@ -142,6 +143,12 @@ Guild AI local MVP check: PASS (10/10)
    - ตรวจว่า `GUILD_AI_BACKUP_DIR` พร้อมหรือยัง
    - แสดง manifest ของไฟล์ที่ควร backup
    - ยังไม่ restore หรือ overwrite ข้อมูลเอง
+
+13. Final Launch Readiness
+   - รวม template, runtime, accounting, smoke evidence, memory, HR, deployment, backup
+   - แสดง Full Guild AI vision และ Local-first MVP progress
+   - ใช้เป็นแผงแรกก่อนเริ่มทดสอบจริง
+   - ถ้า critical gate ไม่ block ก็เริ่ม trial local ได้
 
 ## 5. Workflow แรกที่ควรลอง
 
@@ -405,9 +412,10 @@ git push
 11. ใช้บันทึก HR review และ human governance decision
 12. ใช้ตรวจ deployment readiness ก่อนเปิด LAN/internet
 13. ใช้ตรวจ backup readiness สำหรับ long-running service
-14. ใช้เก็บ model limit events เพื่อคุมต้นทุน
-15. ใช้เป็นฐานสำหรับ LAN/autostart
-16. ใช้เป็นฐานต่อ ChromaDB L3 memory ในอนาคต
+14. ใช้ Final launch readiness เป็นจุดเริ่มทดสอบวันนี้
+15. ใช้เก็บ model limit events เพื่อคุมต้นทุน
+16. ใช้เป็นฐานสำหรับ LAN/autostart
+17. ใช้เป็นฐานต่อ ChromaDB L3 memory ในอนาคต
 
 ## 12. สิ่งที่ยังไม่ควรทำ
 
