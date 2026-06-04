@@ -11,6 +11,7 @@ import {
   recordTokenUsageWithJournal,
   upsertModelPricing,
 } from "../guild-ai/accounting-journal.ts";
+import { buildGuildBackupReadiness } from "../guild-ai/backup-readiness.ts";
 import { buildGuildSgmBriefing } from "../guild-ai/briefing.ts";
 import {
   ALLOWED_ORIGINS,
@@ -172,6 +173,20 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
         logsDir: ctx.logsDir,
         viteDev: Boolean(process.env.VITE_DEV),
         internetProxyEnabled: process.env.GUILD_AI_HTTPS_PROXY === "1",
+      }),
+    });
+  });
+
+  app.get("/api/guild-ai/backup/:guildId/readiness", (req, res) => {
+    const guildId = req.params.guildId;
+    res.json({
+      ok: true,
+      readiness: buildGuildBackupReadiness({
+        guildId,
+        generatedAt: nowMs(),
+        dbPath: ctx.dbPath,
+        logsDir: ctx.logsDir,
+        backupDir: process.env.GUILD_AI_BACKUP_DIR ?? null,
       }),
     });
   });

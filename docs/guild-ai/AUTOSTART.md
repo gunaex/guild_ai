@@ -71,6 +71,7 @@ sudo systemctl enable --now guild-ai-docker.service
 ## LAN And Internet Notes
 
 Before exposing Guild AI beyond this machine, open the Guild AI panel and check `Deployment readiness`.
+Before treating the machine as long-running infrastructure, also check `Backup readiness`.
 
 For LAN use:
 
@@ -87,3 +88,22 @@ For internet use:
 - Use auth on all admin/API routes.
 - Back up SQLite and optional ChromaDB volumes.
 - Set `GUILD_AI_HTTPS_PROXY=1` only after HTTPS reverse proxy, firewall, and auth are actually in place.
+
+## Backup Readiness
+
+Set a private backup directory:
+
+```bash
+mkdir -p ~/.local/share/guild-ai/backups
+GUILD_AI_BACKUP_DIR=$HOME/.local/share/guild-ai/backups npm run dev:local
+```
+
+The Guild AI panel checks:
+
+- SQLite database path.
+- SQLite `-wal` and `-shm` sidecar files when present.
+- logs directory.
+- `security-audit.ndjson` when present.
+- `GUILD_AI_BACKUP_DIR`.
+
+For a real backup, stop the service or use SQLite backup tooling before copying DB files.

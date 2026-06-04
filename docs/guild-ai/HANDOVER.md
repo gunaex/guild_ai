@@ -107,6 +107,7 @@ The local-first MVP is now accepted by `npm run guild:mvp-check`, which validate
 The full Guild AI vision is now estimated at 75% after adding SQLite L2 memory: `GET /api/guild-ai/memory/:guildId`, `POST /api/guild-ai/memory`, a Guild AI panel memory section, SGM briefing memory readiness, and automatic memory capture from upgrade proposals, upgrade decisions, SGM advice, and service revenue.
 The full Guild AI vision is now estimated at 80% after adding HR governance: productivity reviews, below-floor termination governance requests, human decision routes, SGM HR readiness metrics, and a Guild AI panel HR section.
 The full Guild AI vision is now estimated at 90% after adding deployment readiness gates: `GET /api/guild-ai/deployment/:guildId/readiness` and a Guild AI panel section check local/LAN/internet exposure posture before binding beyond loopback.
+The full Guild AI vision is now estimated at 93% after adding backup readiness: `GET /api/guild-ai/backup/:guildId/readiness` and a Guild AI panel section list SQLite/log/audit backup sources and `GUILD_AI_BACKUP_DIR` setup.
 
 ## Current Best Next Code Change
 
@@ -132,6 +133,7 @@ SGM briefing now exists at `GET /api/guild-ai/briefing/:guildId` and in the Guil
 SQLite L2 memory now exists in `guild_memory_records`. Manual records can be created from the Guild AI panel or `POST /api/guild-ai/memory`, recent records are listed through `GET /api/guild-ai/memory/:guildId`, and important governance/accounting events are captured automatically as durable context before ChromaDB L3 retrieval is added.
 HR governance now exists at `GET /api/guild-ai/hr/:guildId/reviews`, `POST /api/guild-ai/hr/reviews`, `GET /api/guild-ai/governance/:guildId/requests`, and `POST /api/guild-ai/governance/:requestId/decision`. Low productivity reviews create pending termination governance requests instead of automatically removing agents.
 Deployment readiness now exists at `GET /api/guild-ai/deployment/:guildId/readiness`. It checks network binding, strong `API_AUTH_TOKEN`, allowed origins/suffixes, CSRF/session guard availability, security audit log path, Vite dev exposure, and HTTPS reverse-proxy posture. Internet readiness remains blocked unless `GUILD_AI_HTTPS_PROXY=1` is explicitly set and the app is not running in Vite dev mode.
+Backup readiness now exists at `GET /api/guild-ai/backup/:guildId/readiness`. It creates a read-only manifest for SQLite DB, WAL/SHM sidecars, logs directory, security audit log, and `GUILD_AI_BACKUP_DIR`. It does not overwrite or restore data.
 
 ## New Strategic Modules
 
@@ -170,6 +172,7 @@ Guild AI now has a governance direction:
 - SQLite L2 memory API, UI panel, SGM readiness, and automatic governance/accounting memory capture.
 - HR review API, governance request API, UI panel controls, SGM readiness, and human decision gates for termination/replacement workflows.
 - Deployment readiness API and UI panel for local/LAN/internet exposure gates.
+- Backup readiness API and UI panel for SQLite/log/security-audit backup manifests.
 
 Important docs:
 

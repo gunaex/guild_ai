@@ -7,6 +7,7 @@ import {
   decideGuildAiGovernanceRequest,
   decideGuildAiUpgrade,
   getGuildAiAccounting,
+  getGuildAiBackupReadiness,
   getGuildAiBriefing,
   getGuildAiCapabilities,
   getGuildAiDeploymentReadiness,
@@ -39,6 +40,7 @@ import {
   type GuildAiAccount,
   type GuildAiAccountingSummary,
   type GuildAiAdvice,
+  type GuildAiBackupReadiness,
   type GuildAiCapability,
   type GuildAiDeploymentReadiness,
   type GuildAiGovernanceRequest,
@@ -82,6 +84,7 @@ type LoadState = {
   runtimeBindings: GuildAiRuntimeBinding[];
   visualManifest: GuildAiVisualManifest | null;
   deploymentReadiness: GuildAiDeploymentReadiness | null;
+  backupReadiness: GuildAiBackupReadiness | null;
   briefing: GuildAiSgmBriefing | null;
   pendingUpgrades: number;
   vectorDbProvider: string;
@@ -143,6 +146,7 @@ const emptyState: LoadState = {
   runtimeBindings: [],
   visualManifest: null,
   deploymentReadiness: null,
+  backupReadiness: null,
   briefing: null,
   pendingUpgrades: 0,
   vectorDbProvider: "none",
@@ -324,6 +328,7 @@ export default function GuildAiPanel() {
         runtimeBindings,
         visualManifest,
         deploymentReadiness,
+        backupReadiness,
         briefing,
       ] = await Promise.all([
         getGuildAiHealth(),
@@ -342,6 +347,7 @@ export default function GuildAiPanel() {
         listGuildAiRuntimeBindings(guildId),
         getGuildAiVisualManifest(guildId),
         getGuildAiDeploymentReadiness(guildId),
+        getGuildAiBackupReadiness(guildId),
         getGuildAiBriefing(guildId),
       ]);
       setState({
@@ -362,6 +368,7 @@ export default function GuildAiPanel() {
         runtimeBindings: runtimeBindings.bindings,
         visualManifest: visualManifest.manifest,
         deploymentReadiness: deploymentReadiness.readiness,
+        backupReadiness: backupReadiness.readiness,
         briefing: briefing.briefing,
         pendingUpgrades: health.pendingUpgrades,
         vectorDbProvider: health.vectorDbProvider,
@@ -1039,6 +1046,57 @@ export default function GuildAiPanel() {
               <div className="mt-4 text-xs font-medium uppercase tracking-wide text-slate-500">Next actions</div>
               <div className="mt-2 grid gap-2">
                 {state.deploymentReadiness.nextActions.map((action) => (
+                  <div key={action} className="rounded-md bg-slate-950 px-3 py-2 text-xs leading-5 text-slate-300">
+                    {action}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {state.backupReadiness && (
+        <section className="rounded-lg border border-slate-700/70 bg-slate-950/70">
+          <div className="flex flex-col gap-2 border-b border-slate-700/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="font-semibold text-slate-100">Backup readiness</h3>
+              <p className="mt-0.5 text-xs text-slate-400">
+                SQLite, WAL, logs, and security audit sources for long-running operation
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(state.backupReadiness.ready ? "completed" : "needs_info")}`}>
+                {state.backupReadiness.ready ? "ready" : "needs setup"}
+              </span>
+              <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(state.backupReadiness.backupDirReady ? "completed" : "watch")}`}>
+                {state.backupReadiness.backupDirReady ? "backup dir" : "no backup dir"}
+              </span>
+            </div>
+          </div>
+          <div className="grid gap-4 p-4 lg:grid-cols-[1fr_320px]">
+            <div className="grid gap-2 md:grid-cols-2">
+              {state.backupReadiness.items.map((item) => (
+                <div key={item.key} className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-sm font-medium text-slate-100">{item.key}</div>
+                    <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(item.exists ? "completed" : item.required ? "rejected" : "watch")}`}>
+                      {item.exists ? "found" : item.required ? "missing" : "optional"}
+                    </span>
+                  </div>
+                  <div className="mt-2 truncate font-mono text-[11px] text-slate-500">{item.path}</div>
+                  <div className="mt-1 text-xs text-slate-400">{item.sizeBytes.toLocaleString()} bytes</div>
+                </div>
+              ))}
+            </div>
+            <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+              <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Backup target</div>
+              <div className="mt-2 break-words font-mono text-xs text-slate-200">
+                {state.backupReadiness.backupDir ?? "GUILD_AI_BACKUP_DIR is not set"}
+              </div>
+              <div className="mt-4 text-xs font-medium uppercase tracking-wide text-slate-500">Next actions</div>
+              <div className="mt-2 grid gap-2">
+                {state.backupReadiness.nextActions.map((action) => (
                   <div key={action} className="rounded-md bg-slate-950 px-3 py-2 text-xs leading-5 text-slate-300">
                     {action}
                   </div>

@@ -130,6 +130,28 @@ export type GuildAiDeploymentReadiness = {
   nextActions: string[];
 };
 
+export type GuildAiBackupReadiness = {
+  guildId: string;
+  generatedAt: number;
+  backupDir: string | null;
+  backupDirReady: boolean;
+  ready: boolean;
+  items: Array<{
+    key: "sqlite_db" | "sqlite_wal" | "sqlite_shm" | "logs_dir" | "security_audit";
+    path: string;
+    exists: boolean;
+    sizeBytes: number;
+    required: boolean;
+  }>;
+  manifest: {
+    version: 1;
+    guildId: string;
+    generatedAt: number;
+    files: Array<{ key: string; path: string; sizeBytes: number; required: boolean }>;
+  };
+  nextActions: string[];
+};
+
 export type GuildAiHrReview = {
   id: number;
   guild_id: string;
@@ -536,6 +558,12 @@ export async function getGuildAiDeploymentReadiness(
   guildId: string,
 ): Promise<{ ok: boolean; readiness: GuildAiDeploymentReadiness }> {
   return request(`/api/guild-ai/deployment/${encodeURIComponent(guildId)}/readiness`);
+}
+
+export async function getGuildAiBackupReadiness(
+  guildId: string,
+): Promise<{ ok: boolean; readiness: GuildAiBackupReadiness }> {
+  return request(`/api/guild-ai/backup/${encodeURIComponent(guildId)}/readiness`);
 }
 
 export async function bootstrapGuildAiOllamaRuntime(
