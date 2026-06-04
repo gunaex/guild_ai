@@ -5,7 +5,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { applyBaseSchema } from "../bootstrap/schema/base-schema.ts";
 import { applyGuildAiSchema } from "../bootstrap/schema/guild-ai-schema.ts";
-import { resolveGuildTaskSmokeRunTarget, stageGuildTaskSmoke } from "./task-smoke.ts";
+import { readGuildTaskSmokeArtifacts, resolveGuildTaskSmokeRunTarget, stageGuildTaskSmoke } from "./task-smoke.ts";
 
 function seedRuntimeBinding(db: DatabaseSync, now: number): void {
   applyBaseSchema(db);
@@ -170,6 +170,40 @@ describe("Guild AI task smoke", () => {
         runtimeAgentName: "Aria",
         departmentId: "dev",
         projectPath: staged.projectPath,
+      });
+    } finally {
+      db.close();
+    }
+  });
+
+  it("reads scratch smoke artifacts for a staged Guild smoke task", () => {
+    const db = new DatabaseSync(":memory:");
+    const now = Date.UTC(2026, 0, 2);
+    try {
+      seedRuntimeBinding(db, now);
+      const staged = stageGuildTaskSmoke(db, {
+        guildId: "ecom-001",
+        roleKey: "techLead",
+        scratchRoot: path.join(os.tmpdir(), "guild-ai-task-smoke-test"),
+        now,
+      });
+      fs.writeFileSync(path.join(staged.projectPath, "SMOKE_RESULT.md"), "# Smoke Result\n\nAgent completed.\n", "utf8");
+
+      const snapshot = readGuildTaskSmokeArtifacts(db, { guildId: "ecom-001", taskId: staged.taskId });
+
+      expect(snapshot).toMatchObject({
+        taskId: staged.taskId,
+        guildId: "ecom-001",
+        projectPath: staged.projectPath,
+      });
+      expect(snapshot.artifacts).toHaveLength(2);
+      expect(snapshot.artifacts.find((artifact) => artifact.name === "GUILD_SMOKE.md")).toMatchObject({
+        exists: true,
+        content: expect.stringContaining("Guild AI Scratch Smoke"),
+      });
+      expect(snapshot.artifacts.find((artifact) => artifact.name === "SMOKE_RESULT.md")).toMatchObject({
+        exists: true,
+        content: expect.stringContaining("Agent completed."),
       });
     } finally {
       db.close();

@@ -36,6 +36,18 @@ export type GuildTaskSmokeRunTarget = {
   projectPath: string;
 };
 
+export type GuildTaskSmokeArtifactSnapshot = {
+  taskId: string;
+  guildId: string;
+  projectPath: string;
+  artifacts: Array<{
+    name: "GUILD_SMOKE.md" | "SMOKE_RESULT.md";
+    exists: boolean;
+    content: string;
+    updatedAt: number | null;
+  }>;
+};
+
 type TaskSmokeRunRow = {
   id: string;
   title: string;
@@ -75,6 +87,30 @@ function parseMeta(raw: string | null): Record<string, unknown> {
   }
 }
 
+function resolveSmokeTaskProjectPath(db: DbLike, input: { guildId: string; taskId: string }): string {
+  const guildId = input.guildId.trim();
+  const taskId = input.taskId.trim();
+  if (!guildId || !taskId) throw new Error("guildId and taskId are required.");
+
+  const task = db
+    .prepare("SELECT id, workflow_meta_json, project_path FROM tasks WHERE id = ?")
+    .get(taskId) as Pick<TaskSmokeRunRow, "id" | "workflow_meta_json" | "project_path"> | undefined;
+  if (!task) throw new Error("Task not found.");
+
+  const meta = parseMeta(task.workflow_meta_json);
+  if (String(meta.guildId ?? "").trim() !== guildId || meta.smoke !== true) {
+    throw new Error("Task is not a Guild AI smoke task.");
+  }
+
+  const projectPath = task.project_path ? path.resolve(task.project_path) : "";
+  const tmp = path.resolve(os.tmpdir());
+  if (!projectPath || (projectPath !== tmp && !projectPath.startsWith(`${tmp}${path.sep}`))) {
+    throw new Error("Guild AI smoke task project path is not inside the system temp directory.");
+  }
+
+  return projectPath;
+}
+
 function writeSmokeBrief(projectPath: string, input: { guildId: string; roleKey: string; agentName: string; now: number }): void {
   const brief = [
     "# Guild AI Scratch Smoke",
@@ -101,6 +137,32 @@ function writeSmokeBrief(projectPath: string, input: { guildId: string; roleKey:
   if (!fs.existsSync(resultPath)) {
     fs.writeFileSync(resultPath, "# Smoke Result\n\nPending agent execution.\n", "utf8");
   }
+}
+
+export function readGuildTaskSmokeArtifacts(
+  db: DbLike,
+  input: { guildId: string; taskId: string },
+): GuildTaskSmokeArtifactSnapshot {
+  const projectPath = resolveSmokeTaskProjectPath(db, input);
+  const names = ["GUILD_SMOKE.md", "SMOKE_RESULT.md"] as const;
+
+  return {
+    taskId: input.taskId.trim(),
+    guildId: input.guildId.trim(),
+    projectPath,
+    artifacts: names.map((name) => {
+      const filePath = path.join(projectPath, name);
+      if (!fs.existsSync(filePath)) return { name, exists: false, content: "", updatedAt: null };
+      const stat = fs.statSync(filePath);
+      if (!stat.isFile()) return { name, exists: false, content: "", updatedAt: null };
+      return {
+        name,
+        exists: true,
+        content: fs.readFileSync(filePath, "utf8").slice(0, 20_000),
+        updatedAt: Math.trunc(stat.mtimeMs),
+      };
+    }),
+  };
 }
 
 export function resolveGuildTaskSmokeRunTarget(

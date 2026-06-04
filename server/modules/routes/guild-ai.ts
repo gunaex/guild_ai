@@ -21,7 +21,7 @@ import {
 } from "../guild-ai/runtime-bindings.ts";
 import { buildGuildRuntimeSmokePrompt, normalizeSmokeRole, stripApiProviderEnvelope } from "../guild-ai/runtime-smoke.ts";
 import { applyGuildTaskRouteDecision, type GuildTaskRouteDecision } from "../guild-ai/task-routing.ts";
-import { resolveGuildTaskSmokeRunTarget, stageGuildTaskSmoke } from "../guild-ai/task-smoke.ts";
+import { readGuildTaskSmokeArtifacts, resolveGuildTaskSmokeRunTarget, stageGuildTaskSmoke } from "../guild-ai/task-smoke.ts";
 import { validateGuildTemplate } from "../guild-ai/templates.ts";
 import { buildGuildVisualManifest } from "../guild-ai/visual-manifest.ts";
 import { insertGuildTemplate } from "../bootstrap/schema/guild-ai-seeds.ts";
@@ -352,6 +352,21 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
       .reverse();
 
     res.json({ ok: true, task, logs });
+  });
+
+  app.get("/api/guild-ai/tasks/:taskId/artifacts", (req, res) => {
+    const taskId = req.params.taskId;
+    const guildId = asText(req.query.guildId);
+    if (!guildId) {
+      res.status(400).json({ ok: false, error: "guildId is required." });
+      return;
+    }
+
+    try {
+      res.json({ ok: true, ...readGuildTaskSmokeArtifacts(db, { guildId, taskId }) });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
   });
 
   app.get("/api/guild-ai/upgrades/:guildId", (req, res) => {

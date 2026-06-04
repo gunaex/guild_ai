@@ -192,6 +192,19 @@ export type GuildAiTaskLogSnapshot = {
   logs: GuildAiTaskLog[];
 };
 
+export type GuildAiTaskArtifactSnapshot = {
+  ok: boolean;
+  taskId: string;
+  guildId: string;
+  projectPath: string;
+  artifacts: Array<{
+    name: "GUILD_SMOKE.md" | "SMOKE_RESULT.md";
+    exists: boolean;
+    content: string;
+    updatedAt: number | null;
+  }>;
+};
+
 export type GuildAiLimitEvent = {
   id: number;
   guildId: string | null;
@@ -432,6 +445,15 @@ export async function routeGuildAiTask(
 
 export async function getGuildAiTaskLogs(taskId: string): Promise<GuildAiTaskLogSnapshot> {
   return request(`/api/guild-ai/tasks/${encodeURIComponent(taskId)}/logs`);
+}
+
+export async function getGuildAiTaskArtifacts(
+  taskId: string,
+  input: { guildId: string },
+): Promise<GuildAiTaskArtifactSnapshot> {
+  return request(
+    `/api/guild-ai/tasks/${encodeURIComponent(taskId)}/artifacts?guildId=${encodeURIComponent(input.guildId)}`,
+  );
 }
 
 export async function createGuildAiAdvice(input: {

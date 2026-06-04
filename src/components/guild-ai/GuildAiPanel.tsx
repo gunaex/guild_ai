@@ -7,6 +7,7 @@ import {
   getGuildAiAccounting,
   getGuildAiBriefing,
   getGuildAiCapabilities,
+  getGuildAiTaskArtifacts,
   getGuildAiHealth,
   getGuildAiTaskLogs,
   getGuildAiVisualManifest,
@@ -39,6 +40,7 @@ import {
   type GuildAiProfitAndLoss,
   type GuildAiRuntimeBinding,
   type GuildAiRuntimeSmokeResult,
+  type GuildAiTaskArtifactSnapshot,
   type GuildAiTaskLogSnapshot,
   type GuildAiTaskRouteDecision,
   type GuildAiTaskRouteResult,
@@ -253,6 +255,7 @@ export default function GuildAiPanel() {
   const [runtimeSmokeBusy, setRuntimeSmokeBusy] = useState(false);
   const [taskSmokeBusy, setTaskSmokeBusy] = useState(false);
   const [taskSmokeRunBusy, setTaskSmokeRunBusy] = useState(false);
+  const [taskArtifactBusy, setTaskArtifactBusy] = useState(false);
   const [taskLogBusy, setTaskLogBusy] = useState(false);
   const [taskRouteBusy, setTaskRouteBusy] = useState<GuildAiTaskRouteDecision | null>(null);
   const [runtimeSmokeResult, setRuntimeSmokeResult] = useState<GuildAiRuntimeSmokeResult | null>(null);
@@ -260,6 +263,7 @@ export default function GuildAiPanel() {
   const [taskSmokeRunResult, setTaskSmokeRunResult] = useState<GuildAiTaskSmokeRunResult | null>(null);
   const [taskRouteResult, setTaskRouteResult] = useState<GuildAiTaskRouteResult | null>(null);
   const [taskLogSnapshot, setTaskLogSnapshot] = useState<GuildAiTaskLogSnapshot | null>(null);
+  const [taskArtifactSnapshot, setTaskArtifactSnapshot] = useState<GuildAiTaskArtifactSnapshot | null>(null);
   const [pricingForm, setPricingForm] = useState<PricingFormState>(defaultPricingForm);
   const [error, setError] = useState<string | null>(null);
 
@@ -586,6 +590,20 @@ export default function GuildAiPanel() {
     }
   };
 
+  const refreshTaskArtifacts = async (taskId = taskSmokeResult?.taskId) => {
+    if (!taskId) return;
+    setTaskArtifactBusy(true);
+    setError(null);
+    try {
+      const snapshot = await getGuildAiTaskArtifacts(taskId, { guildId: selectedGuildId });
+      setTaskArtifactSnapshot(snapshot);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setTaskArtifactBusy(false);
+    }
+  };
+
   const stageTaskSmoke = async () => {
     setTaskSmokeBusy(true);
     setError(null);
@@ -595,7 +613,9 @@ export default function GuildAiPanel() {
       setTaskSmokeRunResult(null);
       setTaskRouteResult(null);
       setTaskLogSnapshot(null);
+      setTaskArtifactSnapshot(null);
       await refreshTaskLogs(result.taskId);
+      await refreshTaskArtifacts(result.taskId);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -611,6 +631,7 @@ export default function GuildAiPanel() {
       const result = await runGuildAiTaskSmoke(taskSmokeResult.taskId, { guildId: selectedGuildId });
       setTaskSmokeRunResult(result);
       await refreshTaskLogs(taskSmokeResult.taskId);
+      await refreshTaskArtifacts(taskSmokeResult.taskId);
       await load(selectedGuildId);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -637,6 +658,7 @@ export default function GuildAiPanel() {
       });
       setTaskRouteResult(result);
       await refreshTaskLogs(taskSmokeResult.taskId);
+      await refreshTaskArtifacts(taskSmokeResult.taskId);
       await load(selectedGuildId);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -954,6 +976,14 @@ export default function GuildAiPanel() {
                 >
                   {taskLogBusy ? "Refreshing..." : "Refresh logs"}
                 </button>
+                <button
+                  type="button"
+                  disabled={taskArtifactBusy}
+                  onClick={() => void refreshTaskArtifacts()}
+                  className="rounded-md border border-sky-400/40 px-2.5 py-1 text-xs text-sky-100 transition hover:bg-sky-500/10 disabled:opacity-50"
+                >
+                  {taskArtifactBusy ? "Refreshing..." : "Refresh artifacts"}
+                </button>
               </div>
               {taskRouteResult && (
                 <div className="mt-3 rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-300">
@@ -997,6 +1027,33 @@ export default function GuildAiPanel() {
                         ))}
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+              {taskArtifactSnapshot && taskArtifactSnapshot.taskId === taskSmokeResult.taskId && (
+                <div className="mt-3 rounded-md border border-slate-800 bg-slate-950">
+                  <div className="border-b border-slate-800 px-3 py-2">
+                    <div className="text-xs font-medium text-slate-200">Scratch artifacts</div>
+                    <div className="truncate font-mono text-[11px] text-slate-500">{taskArtifactSnapshot.projectPath}</div>
+                  </div>
+                  <div className="grid gap-2 p-3 md:grid-cols-2">
+                    {taskArtifactSnapshot.artifacts.map((artifact) => (
+                      <div key={artifact.name} className="min-w-0 rounded-md border border-slate-800 bg-slate-900/60">
+                        <div className="flex items-center justify-between gap-2 border-b border-slate-800 px-3 py-2">
+                          <div className="font-mono text-xs text-slate-200">{artifact.name}</div>
+                          <span
+                            className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                              artifact.exists ? statusClass("completed") : statusClass("needs_info")
+                            }`}
+                          >
+                            {artifact.exists ? "found" : "missing"}
+                          </span>
+                        </div>
+                        <pre className="max-h-48 overflow-auto whitespace-pre-wrap p-3 text-xs leading-5 text-slate-300">
+                          {artifact.exists ? artifact.content : "Artifact has not been created yet."}
+                        </pre>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
