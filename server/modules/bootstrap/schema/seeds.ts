@@ -86,6 +86,8 @@ export function applyDefaultSeeds(db: DbLike): void {
       insertSetting.run("yoloMode", "false");
       insertSetting.run("autoUpdateEnabled", "false");
       insertSetting.run("autoUpdateNoticePending", "false");
+      insertSetting.run("guildAiBackupEnabled", "true");
+      insertSetting.run("guildAiBackupRetentionDays", "14");
       insertSetting.run("oauthAutoSwap", "true");
       insertSetting.run("language", "en");
       insertSetting.run("defaultProvider", "claude");
@@ -128,6 +130,20 @@ export function applyDefaultSeeds(db: DbLike): void {
       .get() as { 1: number } | undefined;
     if (!hasAutoUpdateEnabledSetting) {
       db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run("autoUpdateEnabled", "false");
+    }
+
+    const hasGuildAiBackupEnabledSetting = db
+      .prepare("SELECT 1 FROM settings WHERE key = 'guildAiBackupEnabled' LIMIT 1")
+      .get() as { 1: number } | undefined;
+    if (!hasGuildAiBackupEnabledSetting) {
+      db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run("guildAiBackupEnabled", "true");
+    }
+
+    const hasGuildAiBackupRetentionDaysSetting = db
+      .prepare("SELECT 1 FROM settings WHERE key = 'guildAiBackupRetentionDays' LIMIT 1")
+      .get() as { 1: number } | undefined;
+    if (!hasGuildAiBackupRetentionDaysSetting) {
+      db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run("guildAiBackupRetentionDays", "14");
     }
 
     const hasYoloModeSetting = db.prepare("SELECT 1 FROM settings WHERE key = 'yoloMode' LIMIT 1").get() as

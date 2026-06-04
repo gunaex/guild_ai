@@ -5,6 +5,7 @@ dist/
 # Runtime artifacts
 logs/
 data/
+guild-ai-backups/
 custom-skills/
 /tasks/
 *.log

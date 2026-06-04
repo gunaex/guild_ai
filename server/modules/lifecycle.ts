@@ -7,6 +7,7 @@ import { HOST, PKG_VERSION, PORT } from "../config/runtime.ts";
 import { notifyTaskStatus } from "../gateway/client.ts";
 import { startDiscordReceiver } from "../messenger/discord-receiver.ts";
 import { startTelegramReceiver } from "../messenger/telegram-receiver.ts";
+import { startGuildBackupScheduler } from "./guild-ai/backup-scheduler.ts";
 import { startGuildPmDailyReportScheduler } from "./guild-ai/pm-daily-scheduler.ts";
 import { registerGracefulShutdownHandlers } from "./lifecycle/register-graceful-shutdown.ts";
 
@@ -464,6 +465,7 @@ export function startLifecycle(ctx: RuntimeContext): void {
   const telegramReceiver = startTelegramReceiver({ db });
   const discordReceiver = startDiscordReceiver({ db });
   const guildPmDailyReportScheduler = startGuildPmDailyReportScheduler({ db, dbPath, logsDir, nowMs });
+  const guildBackupScheduler = startGuildBackupScheduler({ db, dbPath, logsDir, nowMs });
 
   // ---------------------------------------------------------------------------
   // Start HTTP server + WebSocket
@@ -545,6 +547,7 @@ export function startLifecycle(ctx: RuntimeContext): void {
       telegramReceiver.stop();
       discordReceiver.stop();
       guildPmDailyReportScheduler.stop();
+      guildBackupScheduler.stop();
     },
   });
 }

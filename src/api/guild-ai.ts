@@ -173,6 +173,72 @@ export type GuildAiBackupReadiness = {
   nextActions: string[];
 };
 
+export type GuildAiBackupSnapshot = {
+  id: string;
+  guild_id: string;
+  backup_dir: string;
+  retention_days: number;
+  status: "succeeded" | "failed";
+  manifest_json: string;
+  error: string | null;
+  created_at: number;
+};
+
+export type GuildAiBudgetGuardStatus = {
+  guildId: string;
+  generatedAt: number;
+  policy: {
+    guild_id: string;
+    daily_budget_usd: number;
+    monthly_budget_usd: number;
+    hard_stop_enabled: number;
+    warn_threshold_percent: number;
+    updated_at: number;
+  };
+  dailySpendUsd: number;
+  monthlySpendUsd: number;
+  dailyRemainingUsd: number;
+  monthlyRemainingUsd: number;
+  dailyPercent: number;
+  monthlyPercent: number;
+  verdict: "ok" | "warning" | "blocked";
+  agentSpend: Array<{
+    agentId: string;
+    displayName: string;
+    roleKey: string;
+    dailyBudgetUsd: number | null;
+    todaySpendUsd: number;
+    percent: number | null;
+    status: "ok" | "warning" | "blocked";
+  }>;
+  nextActions: string[];
+};
+
+export type GuildAiWorkerQueueItem = {
+  id: string;
+  guild_id: string;
+  task_id: string | null;
+  title: string;
+  payload_json: string;
+  status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+  priority: number;
+  attempts: number;
+  max_attempts: number;
+  last_error: string | null;
+  run_after: number | null;
+  started_at: number | null;
+  finished_at: number | null;
+  created_at: number;
+  updated_at: number;
+};
+
+export type GuildAiWorkerQueueStatus = {
+  guildId: string;
+  generatedAt: number;
+  counts: Record<GuildAiWorkerQueueItem["status"], number>;
+  nextItems: GuildAiWorkerQueueItem[];
+};
+
 export type GuildAiLaunchReadiness = {
   guildId: string;
   generatedAt: number;
@@ -681,6 +747,55 @@ export async function getGuildAiBackupReadiness(
   guildId: string,
 ): Promise<{ ok: boolean; readiness: GuildAiBackupReadiness }> {
   return request(`/api/guild-ai/backup/${encodeURIComponent(guildId)}/readiness`);
+}
+
+export async function listGuildAiBackupSnapshots(
+  guildId: string,
+): Promise<{ ok: boolean; guildId: string; retentionDays: number; snapshots: GuildAiBackupSnapshot[] }> {
+  return request(`/api/guild-ai/backup/${encodeURIComponent(guildId)}/snapshots`);
+}
+
+export async function runGuildAiBackup(
+  guildId: string,
+): Promise<{ ok: boolean; guildId: string; snapshot: GuildAiBackupSnapshot; manifest: unknown }> {
+  return post(`/api/guild-ai/backup/${encodeURIComponent(guildId)}/run`, {});
+}
+
+export async function getGuildAiBudgetGuard(
+  guildId: string,
+): Promise<{ ok: boolean; guildId: string; budget: GuildAiBudgetGuardStatus }> {
+  return request(`/api/guild-ai/budget/${encodeURIComponent(guildId)}`);
+}
+
+export async function updateGuildAiBudgetPolicy(
+  guildId: string,
+  input: {
+    dailyBudgetUsd: number;
+    monthlyBudgetUsd: number;
+    hardStopEnabled: boolean;
+    warnThresholdPercent: number;
+  },
+): Promise<{ ok: boolean; guildId: string; budget: GuildAiBudgetGuardStatus }> {
+  return post(`/api/guild-ai/budget/${encodeURIComponent(guildId)}/policy`, input);
+}
+
+export async function getGuildAiWorkerQueue(
+  guildId: string,
+): Promise<{ ok: boolean; guildId: string; queue: GuildAiWorkerQueueStatus; items: GuildAiWorkerQueueItem[] }> {
+  return request(`/api/guild-ai/queue/${encodeURIComponent(guildId)}`);
+}
+
+export async function enqueueGuildAiWorkerJob(
+  guildId: string,
+  input: { title: string; priority?: number; maxAttempts?: number; payload?: Record<string, unknown>; taskId?: string | null },
+): Promise<{ ok: boolean; guildId: string; item: GuildAiWorkerQueueItem }> {
+  return post(`/api/guild-ai/queue/${encodeURIComponent(guildId)}/jobs`, input);
+}
+
+export async function processNextGuildAiWorkerJob(
+  guildId: string,
+): Promise<{ ok: boolean; guildId: string; item: GuildAiWorkerQueueItem | null; reason?: string }> {
+  return post(`/api/guild-ai/queue/${encodeURIComponent(guildId)}/process-next`, {});
 }
 
 export async function getGuildAiLaunchReadiness(

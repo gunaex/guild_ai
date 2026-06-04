@@ -109,6 +109,44 @@ CREATE TABLE IF NOT EXISTS guild_ai_limit_events (
   created_at INTEGER DEFAULT (unixepoch()*1000)
 );
 
+CREATE TABLE IF NOT EXISTS guild_budget_policies (
+  guild_id TEXT PRIMARY KEY,
+  daily_budget_usd REAL NOT NULL DEFAULT 10,
+  monthly_budget_usd REAL NOT NULL DEFAULT 300,
+  hard_stop_enabled INTEGER NOT NULL DEFAULT 1 CHECK(hard_stop_enabled IN (0,1)),
+  warn_threshold_percent INTEGER NOT NULL DEFAULT 80 CHECK(warn_threshold_percent BETWEEN 1 AND 100),
+  updated_at INTEGER DEFAULT (unixepoch()*1000)
+);
+
+CREATE TABLE IF NOT EXISTS guild_backup_snapshots (
+  id TEXT PRIMARY KEY,
+  guild_id TEXT NOT NULL,
+  backup_dir TEXT NOT NULL,
+  retention_days INTEGER NOT NULL DEFAULT 14,
+  status TEXT NOT NULL CHECK(status IN ('succeeded','failed')),
+  manifest_json TEXT NOT NULL DEFAULT '{}',
+  error TEXT,
+  created_at INTEGER DEFAULT (unixepoch()*1000)
+);
+
+CREATE TABLE IF NOT EXISTS guild_worker_queue (
+  id TEXT PRIMARY KEY,
+  guild_id TEXT NOT NULL,
+  task_id TEXT,
+  title TEXT NOT NULL,
+  payload_json TEXT NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'queued' CHECK(status IN ('queued','running','succeeded','failed','cancelled')),
+  priority INTEGER NOT NULL DEFAULT 3,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  max_attempts INTEGER NOT NULL DEFAULT 3,
+  last_error TEXT,
+  run_after INTEGER,
+  started_at INTEGER,
+  finished_at INTEGER,
+  created_at INTEGER DEFAULT (unixepoch()*1000),
+  updated_at INTEGER DEFAULT (unixepoch()*1000)
+);
+
 CREATE TABLE IF NOT EXISTS guild_memory_records (
   id TEXT PRIMARY KEY,
   guild_id TEXT NOT NULL,
@@ -253,6 +291,8 @@ CREATE INDEX IF NOT EXISTS idx_guild_revenue_records_guild_created ON guild_reve
 CREATE INDEX IF NOT EXISTS idx_guild_ai_credit_topups_guild_created ON guild_ai_credit_topups(guild_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_guild_ai_limit_events_active ON guild_ai_limit_events(api_provider_id, model, active_until, created_at);
 CREATE INDEX IF NOT EXISTS idx_guild_ai_limit_events_guild_created ON guild_ai_limit_events(guild_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_guild_backup_snapshots_guild_created ON guild_backup_snapshots(guild_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_guild_worker_queue_status ON guild_worker_queue(guild_id, status, priority, created_at);
 CREATE INDEX IF NOT EXISTS idx_guild_memory_records_lookup ON guild_memory_records(guild_id, namespace, created_at);
 CREATE INDEX IF NOT EXISTS idx_guild_hr_reviews_agent ON guild_hr_reviews(guild_id, agent_id, review_date);
 CREATE INDEX IF NOT EXISTS idx_guild_upgrade_proposals_status ON guild_upgrade_proposals(guild_id, status, created_at);

@@ -331,6 +331,43 @@ npm run check
 14. ตรวจ acceptance ทั้งระบบด้วยคำสั่งเดียว
 15. ใช้เป็นฐานต่อยอด LAN/autostart/revenue/memory ได้
 
+## 14.1 Secretary, Budget, Backup, Queue Test
+
+ทดสอบ office operations layer:
+
+1. เปิดหน้า Office
+2. ลาก `Secretary Office` panel ไปตำแหน่งที่ไม่บัง CEO
+3. Refresh browser แล้วตรวจว่า panel จำตำแหน่งเดิม
+4. กด reset position แล้วตรวจว่ากลับตำแหน่ง default
+5. กด `Send order` แล้วต้องไปหน้า Task Board และเปิด New Task modal
+6. เข้า `Guild AI`
+7. ดู `Budget guard` แล้วปรับ daily/monthly budget ได้
+8. ตั้ง daily budget ต่ำกว่าค่าใช้จ่ายวันนี้ แล้วตรวจว่า verdict เป็น `blocked`
+9. ดู `Backup readiness` แล้วกด `Run backup now`
+10. ตรวจว่า `Latest snapshots` มี snapshot ใหม่
+11. เข้า Settings -> Operations แล้วตรวจ default retention เป็น `14`
+12. ปรับ retention แล้ว save/blur จากนั้นกลับมา Guild AI เพื่อตรวจ retention ที่แสดง
+13. ดู `Real worker queue`
+14. Enqueue job ใหม่
+15. ถ้า Budget Guard blocked ปุ่ม Process next ต้องหยุด/disabled
+16. เพิ่ม budget ให้ไม่ blocked แล้วกด `Process next`
+17. ตรวจ queue item เปลี่ยนเป็น `succeeded`
+
+คำสั่ง verify:
+
+```bash
+npm run build
+npm run test:api
+```
+
+คาดหวังล่าสุด:
+
+- Build ผ่าน
+- API tests ผ่าน 75 files / 275 tests
+- Secretary overlay ไม่บัง CEO แบบถาวรอีก
+- Backup retention default 14 วัน และปรับได้ใน Settings
+- Worker queue เคารพ Budget Guard ก่อน process งาน
+
 ## 15. Pass Criteria
 
 ถือว่า Local-first MVP ผ่านเมื่อ:

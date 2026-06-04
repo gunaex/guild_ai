@@ -12,8 +12,18 @@ import {
   upsertModelPricing,
 } from "../guild-ai/accounting-journal.ts";
 import { buildGuildBackupReadiness } from "../guild-ai/backup-readiness.ts";
+import {
+  listGuildBackupSnapshots,
+  readGuildBackupRetentionDays,
+  resolveGuildBackupDir,
+  runGuildBackupSnapshot,
+} from "../guild-ai/backup-scheduler.ts";
 import { buildGuildSgmBriefing } from "../guild-ai/briefing.ts";
 import { buildGuildAuditReplay } from "../guild-ai/audit-replay.ts";
+import {
+  buildGuildBudgetGuardStatus,
+  updateGuildBudgetPolicy,
+} from "../guild-ai/budget-guard.ts";
 import {
   ALLOWED_ORIGINS,
   ALLOWED_ORIGIN_SUFFIXES,
@@ -57,6 +67,12 @@ import {
 import { validateGuildTemplate } from "../guild-ai/templates.ts";
 import { buildGuildVisualBridgeSnapshot } from "../guild-ai/visual-bridge.ts";
 import { buildGuildVisualManifest } from "../guild-ai/visual-manifest.ts";
+import {
+  buildGuildWorkerQueueStatus,
+  enqueueGuildWorkerJob,
+  listGuildWorkerQueue,
+  processNextGuildWorkerQueueItem,
+} from "../guild-ai/worker-queue.ts";
 import { insertGuildTemplate } from "../bootstrap/schema/guild-ai-seeds.ts";
 
 function asText(value: unknown): string {
@@ -122,7 +138,7 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
       generatedAt,
       dbPath: ctx.dbPath,
       logsDir: ctx.logsDir,
-      backupDir: process.env.GUILD_AI_BACKUP_DIR ?? null,
+      backupDir: resolveGuildBackupDir(ctx.dbPath),
     });
     return buildGuildLaunchReadiness({ db, guildId, generatedAt, deployment, backup });
   }
@@ -243,9 +259,90 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
         generatedAt: nowMs(),
         dbPath: ctx.dbPath,
         logsDir: ctx.logsDir,
-        backupDir: process.env.GUILD_AI_BACKUP_DIR ?? null,
+        backupDir: resolveGuildBackupDir(ctx.dbPath),
       }),
     });
+  });
+
+  app.get("/api/guild-ai/backup/:guildId/snapshots", (req, res) => {
+    const guildId = req.params.guildId;
+    res.json({
+      ok: true,
+      guildId,
+      retentionDays: readGuildBackupRetentionDays(db),
+      snapshots: listGuildBackupSnapshots(db, guildId, asPositiveInt(req.query.limit, 10, 50)),
+    });
+  });
+
+  app.post("/api/guild-ai/backup/:guildId/run", (req, res) => {
+    const guildId = req.params.guildId;
+    const result = runGuildBackupSnapshot({
+      db,
+      guildId,
+      dbPath: ctx.dbPath,
+      logsDir: ctx.logsDir,
+      now: nowMs(),
+      retentionDays: readGuildBackupRetentionDays(db),
+    });
+    res.json({ ok: result.snapshot.status === "succeeded", guildId, snapshot: result.snapshot, manifest: result.manifest });
+  });
+
+  app.get("/api/guild-ai/budget/:guildId", (req, res) => {
+    const guildId = req.params.guildId;
+    res.json({ ok: true, guildId, budget: buildGuildBudgetGuardStatus(db, guildId, nowMs()) });
+  });
+
+  app.post("/api/guild-ai/budget/:guildId/policy", (req, res) => {
+    const guildId = req.params.guildId;
+    const body = req.body as Record<string, unknown>;
+    try {
+      const policy = updateGuildBudgetPolicy(db, {
+        guildId,
+        dailyBudgetUsd: asNonNegativeNumber(body.dailyBudgetUsd, 10),
+        monthlyBudgetUsd: asNonNegativeNumber(body.monthlyBudgetUsd, 300),
+        hardStopEnabled: body.hardStopEnabled !== false,
+        warnThresholdPercent: asPositiveInt(body.warnThresholdPercent, 80, 100),
+        updatedAt: nowMs(),
+      });
+      res.json({ ok: true, guildId, policy, budget: buildGuildBudgetGuardStatus(db, guildId, nowMs()) });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.get("/api/guild-ai/queue/:guildId", (req, res) => {
+    const guildId = req.params.guildId;
+    res.json({
+      ok: true,
+      guildId,
+      queue: buildGuildWorkerQueueStatus(db, guildId, nowMs()),
+      items: listGuildWorkerQueue(db, guildId, asPositiveInt(req.query.limit, 20, 100)),
+    });
+  });
+
+  app.post("/api/guild-ai/queue/:guildId/jobs", (req, res) => {
+    const guildId = req.params.guildId;
+    const body = req.body as Record<string, unknown>;
+    try {
+      const item = enqueueGuildWorkerJob(db, {
+        guildId,
+        title: asText(body.title),
+        taskId: asText(body.taskId) || null,
+        payload: typeof body.payload === "object" && body.payload !== null ? (body.payload as Record<string, unknown>) : {},
+        priority: asPositiveInt(body.priority, 3, 5),
+        maxAttempts: asPositiveInt(body.maxAttempts, 3, 10),
+        now: nowMs(),
+      });
+      res.json({ ok: true, guildId, item });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.post("/api/guild-ai/queue/:guildId/process-next", (req, res) => {
+    const guildId = req.params.guildId;
+    const result = processNextGuildWorkerQueueItem(db, { guildId, now: nowMs() });
+    res.status(result.ok ? 200 : 409).json({ ...result, guildId });
   });
 
   app.get("/api/guild-ai/launch/:guildId/readiness", (req, res) => {

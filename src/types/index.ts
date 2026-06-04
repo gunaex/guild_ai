@@ -369,6 +369,8 @@ export interface CompanySettings {
   yoloMode?: boolean;
   autoUpdateEnabled: boolean;
   autoUpdateNoticePending?: boolean;
+  guildAiBackupEnabled?: boolean;
+  guildAiBackupRetentionDays?: number;
   oauthAutoSwap?: boolean;
   theme: "dark" | "light";
   language: UiLanguage;
@@ -388,6 +390,8 @@ export const DEFAULT_SETTINGS: CompanySettings = {
   yoloMode: false,
   autoUpdateEnabled: false,
   autoUpdateNoticePending: false,
+  guildAiBackupEnabled: true,
+  guildAiBackupRetentionDays: 14,
   oauthAutoSwap: true,
   theme: "dark",
   language: "en",

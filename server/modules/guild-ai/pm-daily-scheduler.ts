@@ -7,6 +7,7 @@ import {
   PORT,
 } from "../../config/runtime.ts";
 import { buildGuildBackupReadiness } from "./backup-readiness.ts";
+import { resolveGuildBackupDir } from "./backup-scheduler.ts";
 import { buildGuildDeploymentReadiness } from "./deployment-readiness.ts";
 import { buildGuildLaunchReadiness } from "./launch-readiness.ts";
 import { generateGuildPmDailyReport, msUntilNextDailyPmReport } from "./pm-daily-report.ts";
@@ -41,7 +42,7 @@ export function generateDailyPmReportsForAllGuilds(input: {
       generatedAt: input.generatedAt,
       dbPath: input.dbPath,
       logsDir: input.logsDir,
-      backupDir: process.env.GUILD_AI_BACKUP_DIR ?? null,
+      backupDir: resolveGuildBackupDir(input.dbPath),
     });
     const launch = buildGuildLaunchReadiness({ db: input.db, guildId, generatedAt: input.generatedAt, deployment, backup });
     generateGuildPmDailyReport({

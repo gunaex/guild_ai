@@ -215,3 +215,7 @@ Latest result after local-first MVP acceptance:
 - Real Local Ollama staged task smoke: Worker/Bolt started through the guarded run endpoint, completed through the API provider with exit code 0, recorded `SMOKE_RESULT.md`, and routed to QA/Hawk review through the Guild lifecycle.
 - Real smoke closure: after evidence was recorded, `qa_pass` moved task `cb05c80b...` from QA review to done; pending smoke evidence is now rejected by route policy.
 - Office screen now has a Secretary Office intake overlay. It shows live task queue counts and lets the CEO open the queue or hand off a new order directly into the Task Board create-task modal.
+- Secretary Office overlay is draggable, persists its local browser position, and has a reset control so it does not cover the CEO desk.
+- Budget Guard is implemented with daily/monthly policy, hard-stop option, agent spend status, API routes, and Guild AI panel UI.
+- Automatic backup is implemented with daily scheduler, manual run endpoint, snapshot history, default 14-day retention, Settings -> Operations retention control, and `guild-ai-backups/` ignored from git.
+- Real worker queue MVP is implemented with persistent queue storage, enqueue/list/process-next API, Guild AI panel controls, and Budget Guard blocking before processing.

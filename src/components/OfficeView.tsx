@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState, useMemo } from "react";
+import { useEffect, useRef, useCallback, useState, useMemo, type PointerEvent } from "react";
 import {
   type Application,
   type Container,
@@ -33,6 +33,19 @@ import {
 } from "./office-view/useOfficeDeliveryEffects";
 import { useOfficePixiRuntime } from "./office-view/useOfficePixiRuntime";
 import { buildOfficeScene } from "./office-view/buildScene";
+
+const SECRETARY_POSITION_KEY = "guild-ai-secretary-panel-position";
+
+function readSecretaryPosition(): { x: number; y: number } {
+  if (typeof window === "undefined") return { x: 12, y: 12 };
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(SECRETARY_POSITION_KEY) ?? "");
+    if (Number.isFinite(parsed?.x) && Number.isFinite(parsed?.y)) return parsed;
+  } catch {
+    /* use default */
+  }
+  return { x: 12, y: 12 };
+}
 
 export default function OfficeView({
   departments,
@@ -146,6 +159,11 @@ export default function OfficeView({
   showVirtualPadRef.current = showVirtualPad;
   const scrollHostXRef = useRef<HTMLElement | null>(null);
   const scrollHostYRef = useRef<HTMLElement | null>(null);
+  const secretaryPanelRef = useRef<HTMLDivElement>(null);
+  const secretaryDragRef = useRef<{ pointerId: number; startX: number; startY: number; panelX: number; panelY: number } | null>(
+    null,
+  );
+  const [secretaryPosition, setSecretaryPosition] = useState(readSecretaryPosition);
 
   const triggerDepartmentInteract = useCallback(() => {
     const cx = ceoPosRef.current.x;
@@ -304,6 +322,68 @@ export default function OfficeView({
     return { waiting, active, review, unassigned };
   }, [tasks]);
 
+  const clampSecretaryPosition = useCallback((next: { x: number; y: number }) => {
+    const parent = secretaryPanelRef.current?.parentElement;
+    const panel = secretaryPanelRef.current;
+    const parentRect = parent?.getBoundingClientRect();
+    const panelRect = panel?.getBoundingClientRect();
+    const maxX = Math.max(12, (parentRect?.width ?? window.innerWidth) - (panelRect?.width ?? 352) - 12);
+    const maxY = Math.max(12, (parentRect?.height ?? window.innerHeight) - (panelRect?.height ?? 170) - 12);
+    return {
+      x: Math.max(12, Math.min(maxX, next.x)),
+      y: Math.max(12, Math.min(maxY, next.y)),
+    };
+  }, []);
+
+  const setAndStoreSecretaryPosition = useCallback(
+    (next: { x: number; y: number }) => {
+      const clamped = clampSecretaryPosition(next);
+      setSecretaryPosition(clamped);
+      window.localStorage.setItem(SECRETARY_POSITION_KEY, JSON.stringify(clamped));
+    },
+    [clampSecretaryPosition],
+  );
+
+  const startSecretaryDrag = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    secretaryDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      panelX: secretaryPosition.x,
+      panelY: secretaryPosition.y,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, [secretaryPosition]);
+
+  const moveSecretaryDrag = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      const drag = secretaryDragRef.current;
+      if (!drag || drag.pointerId !== event.pointerId) return;
+      setSecretaryPosition(
+        clampSecretaryPosition({
+          x: drag.panelX + event.clientX - drag.startX,
+          y: drag.panelY + event.clientY - drag.startY,
+        }),
+      );
+    },
+    [clampSecretaryPosition],
+  );
+
+  const endSecretaryDrag = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      const drag = secretaryDragRef.current;
+      if (!drag || drag.pointerId !== event.pointerId) return;
+      secretaryDragRef.current = null;
+      setAndStoreSecretaryPosition(
+        clampSecretaryPosition({
+          x: drag.panelX + event.clientX - drag.startX,
+          y: drag.panelY + event.clientY - drag.startY,
+        }),
+      );
+    },
+    [clampSecretaryPosition, setAndStoreSecretaryPosition],
+  );
+
   const tickerContext = useMemo(
     () => ({
       tickRef,
@@ -402,8 +482,19 @@ export default function OfficeView({
   return (
     <div className="w-full overflow-auto" style={{ minHeight: "100%" }}>
       <div className="relative mx-auto w-full">
-        <div className="absolute left-3 top-3 z-10 w-[min(22rem,calc(100%-1.5rem))] rounded-lg border border-white/70 bg-white/95 p-3 text-slate-950 shadow-xl backdrop-blur dark:border-slate-700 dark:bg-slate-950/90 dark:text-slate-50">
-          <div className="flex items-start justify-between gap-3">
+        <div
+          ref={secretaryPanelRef}
+          className="absolute z-10 w-[min(22rem,calc(100%-1.5rem))] rounded-lg border border-white/70 bg-white/95 p-3 text-slate-950 shadow-xl backdrop-blur dark:border-slate-700 dark:bg-slate-950/90 dark:text-slate-50"
+          style={{ left: secretaryPosition.x, top: secretaryPosition.y }}
+        >
+          <div
+            className="flex cursor-move touch-none select-none items-start justify-between gap-3"
+            onPointerDown={startSecretaryDrag}
+            onPointerMove={moveSecretaryDrag}
+            onPointerUp={endSecretaryDrag}
+            onPointerCancel={endSecretaryDrag}
+            title={t({ ko: "드래그해서 이동", en: "Drag to move", ja: "ドラッグして移動", zh: "拖动移动" })}
+          >
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
                 {t({ ko: "비서실", en: "Secretary Office", ja: "秘書室", zh: "秘书办公室" })}
@@ -417,8 +508,21 @@ export default function OfficeView({
                 })}
               </h2>
             </div>
-            <div className="rounded-md bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200">
-              {t({ ko: "QUEUE", en: "QUEUE", ja: "QUEUE", zh: "QUEUE" })}
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setAndStoreSecretaryPosition({ x: 12, y: 12 });
+                }}
+                className="rounded-md border border-slate-300 bg-white px-1.5 py-1 text-[10px] font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                title={t({ ko: "위치 초기화", en: "Reset position", ja: "位置をリセット", zh: "重置位置" })}
+              >
+                ↺
+              </button>
+              <div className="rounded-md bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200">
+                {t({ ko: "QUEUE", en: "QUEUE", ja: "QUEUE", zh: "QUEUE" })}
+              </div>
             </div>
           </div>
 

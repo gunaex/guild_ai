@@ -151,6 +151,10 @@ This local repo currently contains a clean Guild AI scaffold, not the upstream f
 - Added visual bridge snapshot API for external Phaser/pixel renderers with sequence and recommended polling cadence.
 - Added upstream sync guard documentation and `npm run guild:upstream-impact` so future Claw-Empire upgrades are reviewed before they can impact Guild AI integrations.
 - Added Office screen Secretary Office intake overlay with live queue counts and CEO order handoff into the Task Board create-task flow.
+- Upgraded Secretary Office overlay to be draggable with local position persistence and reset control so it no longer blocks the CEO desk.
+- Added Budget Guard policy/status API and Guild AI panel UI for daily/monthly hard-stop spend control.
+- Added automatic daily backup scheduler with default 14-day retention, configurable Settings -> Operations retention, manual backup run, snapshot history, and generated backup artifact ignore rules.
+- Added real worker queue MVP with persistent queue table, enqueue/list/process-next API, Budget Guard blocking, and Guild AI panel controls.
 
 ## Verified
 
@@ -222,6 +226,7 @@ Verified fork routes:
 Latest fork test result:
 
 - API: 72 test files passed, 272 tests passed.
+- API latest: 75 test files passed, 275 tests passed.
 - Web: 25 test files passed, 76 tests passed.
 - Build: `npm run build` passed.
 - Local MVP acceptance: `npm run guild:mvp-check` passed, 10/10 gates.

@@ -10,8 +10,10 @@ import {
   getGuildAiAccounting,
   getGuildAiBackupReadiness,
   getGuildAiBriefing,
+  getGuildAiBudgetGuard,
   getGuildAiCapabilities,
   getGuildAiDeploymentReadiness,
+  getGuildAiWorkerQueue,
   getGuildAiTaskArtifacts,
   getGuildAiHealth,
   getGuildAiLaunchReadiness,
@@ -21,6 +23,7 @@ import {
   getGuildAiVisualManifest,
   listGuildAiAccounts,
   listGuildAiAdvice,
+  listGuildAiBackupSnapshots,
   listGuildAiGovernanceRequests,
   listGuildAiHrReviews,
   listGuildAiJournal,
@@ -36,16 +39,22 @@ import {
   recordGuildAiHrReview,
   recordGuildAiRevenue,
   recordGuildAiTokenUsage,
+  enqueueGuildAiWorkerJob,
+  processNextGuildAiWorkerJob,
   routeGuildAiTask,
+  runGuildAiBackup,
   runGuildAiTaskSmoke,
   runGuildAiRuntimeSmoke,
   scoreGuildAiDailyProductivity,
   stageGuildAiTaskSmoke,
+  updateGuildAiBudgetPolicy,
   upsertGuildAiModelPricing,
   type GuildAiAccount,
   type GuildAiAccountingSummary,
   type GuildAiAdvice,
   type GuildAiBackupReadiness,
+  type GuildAiBackupSnapshot,
+  type GuildAiBudgetGuardStatus,
   type GuildAiCapability,
   type GuildAiDeploymentReadiness,
   type GuildAiGovernanceRequest,
@@ -72,6 +81,8 @@ import {
   type GuildAiTemplateSummary,
   type GuildAiUpgradeProposal,
   type GuildAiVectorMemoryStatus,
+  type GuildAiWorkerQueueItem,
+  type GuildAiWorkerQueueStatus,
 } from "../../api/guild-ai";
 
 type LoadState = {
@@ -93,6 +104,11 @@ type LoadState = {
   visualManifest: GuildAiVisualManifest | null;
   deploymentReadiness: GuildAiDeploymentReadiness | null;
   backupReadiness: GuildAiBackupReadiness | null;
+  backupRetentionDays: number;
+  backupSnapshots: GuildAiBackupSnapshot[];
+  budgetGuard: GuildAiBudgetGuardStatus | null;
+  workerQueue: GuildAiWorkerQueueStatus | null;
+  workerQueueItems: GuildAiWorkerQueueItem[];
   launchReadiness: GuildAiLaunchReadiness | null;
   pmDailyReport: GuildAiPmDailyReport | null;
   vectorMemoryStatus: GuildAiVectorMemoryStatus | null;
@@ -158,6 +174,11 @@ const emptyState: LoadState = {
   visualManifest: null,
   deploymentReadiness: null,
   backupReadiness: null,
+  backupRetentionDays: 14,
+  backupSnapshots: [],
+  budgetGuard: null,
+  workerQueue: null,
+  workerQueueItems: [],
   launchReadiness: null,
   pmDailyReport: null,
   vectorMemoryStatus: null,
@@ -321,6 +342,10 @@ export default function GuildAiPanel() {
   const [hrReviewBusy, setHrReviewBusy] = useState(false);
   const [hrScoreBusy, setHrScoreBusy] = useState(false);
   const [governanceBusyRequestId, setGovernanceBusyRequestId] = useState<string | null>(null);
+  const [backupBusy, setBackupBusy] = useState(false);
+  const [budgetBusy, setBudgetBusy] = useState(false);
+  const [queueBusy, setQueueBusy] = useState(false);
+  const [queueTitle, setQueueTitle] = useState("Secretary intake follow-up");
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (guildId: string) => {
@@ -345,6 +370,9 @@ export default function GuildAiPanel() {
         visualManifest,
         deploymentReadiness,
         backupReadiness,
+        backupSnapshots,
+        budgetGuard,
+        workerQueue,
         launchReadiness,
         pmDailyReport,
         vectorMemoryStatus,
@@ -367,6 +395,9 @@ export default function GuildAiPanel() {
         getGuildAiVisualManifest(guildId),
         getGuildAiDeploymentReadiness(guildId),
         getGuildAiBackupReadiness(guildId),
+        listGuildAiBackupSnapshots(guildId),
+        getGuildAiBudgetGuard(guildId),
+        getGuildAiWorkerQueue(guildId),
         getGuildAiLaunchReadiness(guildId),
         getLatestGuildAiPmDailyReport(guildId),
         getGuildAiVectorMemoryStatus(guildId),
@@ -391,6 +422,11 @@ export default function GuildAiPanel() {
         visualManifest: visualManifest.manifest,
         deploymentReadiness: deploymentReadiness.readiness,
         backupReadiness: backupReadiness.readiness,
+        backupRetentionDays: backupSnapshots.retentionDays,
+        backupSnapshots: backupSnapshots.snapshots,
+        budgetGuard: budgetGuard.budget,
+        workerQueue: workerQueue.queue,
+        workerQueueItems: workerQueue.items,
         launchReadiness: launchReadiness.readiness,
         pmDailyReport: pmDailyReport.report,
         vectorMemoryStatus: vectorMemoryStatus.status,
@@ -572,6 +608,86 @@ export default function GuildAiPanel() {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setHrReviewBusy(false);
+    }
+  };
+
+  const runManualBackup = async () => {
+    setBackupBusy(true);
+    setError(null);
+    try {
+      await runGuildAiBackup(selectedGuildId);
+      await load(selectedGuildId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBackupBusy(false);
+    }
+  };
+
+  const saveBudgetPolicy = async () => {
+    if (!state.budgetGuard) return;
+    setBudgetBusy(true);
+    setError(null);
+    try {
+      await updateGuildAiBudgetPolicy(selectedGuildId, {
+        dailyBudgetUsd: state.budgetGuard.policy.daily_budget_usd,
+        monthlyBudgetUsd: state.budgetGuard.policy.monthly_budget_usd,
+        hardStopEnabled: state.budgetGuard.policy.hard_stop_enabled === 1,
+        warnThresholdPercent: state.budgetGuard.policy.warn_threshold_percent,
+      });
+      await load(selectedGuildId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBudgetBusy(false);
+    }
+  };
+
+  const updateBudgetDraft = (patch: Partial<GuildAiBudgetGuardStatus["policy"]>) => {
+    setState((prev) => {
+      if (!prev.budgetGuard) return prev;
+      return {
+        ...prev,
+        budgetGuard: {
+          ...prev.budgetGuard,
+          policy: { ...prev.budgetGuard.policy, ...patch },
+        },
+      };
+    });
+  };
+
+  const enqueueWorkerJob = async () => {
+    if (!queueTitle.trim()) {
+      setError("Queue title is required.");
+      return;
+    }
+    setQueueBusy(true);
+    setError(null);
+    try {
+      await enqueueGuildAiWorkerJob(selectedGuildId, {
+        title: queueTitle,
+        priority: 3,
+        payload: { source: "guild_ai_panel" },
+      });
+      setQueueTitle("Secretary intake follow-up");
+      await load(selectedGuildId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setQueueBusy(false);
+    }
+  };
+
+  const processNextWorkerJob = async () => {
+    setQueueBusy(true);
+    setError(null);
+    try {
+      await processNextGuildAiWorkerJob(selectedGuildId);
+      await load(selectedGuildId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setQueueBusy(false);
     }
   };
 
@@ -1227,16 +1343,125 @@ export default function GuildAiPanel() {
         </section>
       )}
 
+      {state.budgetGuard && (
+        <section className="rounded-lg border border-slate-700/70 bg-slate-950/70">
+          <div className="flex flex-col gap-2 border-b border-slate-700/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="font-semibold text-slate-100">Budget guard</h3>
+              <p className="mt-0.5 text-xs text-slate-400">
+                Daily/monthly AI spend guard with hard-stop awareness for queue processing
+              </p>
+            </div>
+            <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(state.budgetGuard.verdict === "blocked" ? "rejected" : state.budgetGuard.verdict === "warning" ? "watch" : "completed")}`}>
+              {state.budgetGuard.verdict}
+            </span>
+          </div>
+          <div className="grid gap-4 p-4 lg:grid-cols-[1fr_340px]">
+            <div className="grid gap-3 md:grid-cols-2">
+              <Metric label="Daily spend" value={`$${state.budgetGuard.dailySpendUsd.toFixed(2)} / $${state.budgetGuard.policy.daily_budget_usd.toFixed(2)}`} />
+              <Metric label="Monthly spend" value={`$${state.budgetGuard.monthlySpendUsd.toFixed(2)} / $${state.budgetGuard.policy.monthly_budget_usd.toFixed(2)}`} />
+              <Metric label="Daily remaining" value={`$${state.budgetGuard.dailyRemainingUsd.toFixed(2)}`} />
+              <Metric label="Monthly remaining" value={`$${state.budgetGuard.monthlyRemainingUsd.toFixed(2)}`} />
+              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3 md:col-span-2">
+                <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Agent spend today</div>
+                <div className="mt-3 grid gap-2">
+                  {state.budgetGuard.agentSpend.slice(0, 8).map((agent) => (
+                    <div key={agent.agentId} className="flex items-center justify-between gap-3 rounded-md bg-slate-950 px-3 py-2 text-xs">
+                      <div className="min-w-0">
+                        <div className="truncate font-medium text-slate-200">{agent.displayName}</div>
+                        <div className="text-slate-500">{agent.roleKey}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-mono text-slate-200">${agent.todaySpendUsd.toFixed(2)}</div>
+                        <div className={agent.status === "blocked" ? "text-rose-300" : agent.status === "warning" ? "text-amber-300" : "text-emerald-300"}>
+                          {agent.percent === null ? "no cap" : `${agent.percent}%`}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+              <div className="grid gap-3">
+                <label className="grid gap-1 text-xs text-slate-400">
+                  Daily budget USD
+                  <input
+                    type="number"
+                    min={0}
+                    value={state.budgetGuard.policy.daily_budget_usd}
+                    onChange={(event) => updateBudgetDraft({ daily_budget_usd: Number(event.target.value) || 0 })}
+                    className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400/60"
+                  />
+                </label>
+                <label className="grid gap-1 text-xs text-slate-400">
+                  Monthly budget USD
+                  <input
+                    type="number"
+                    min={0}
+                    value={state.budgetGuard.policy.monthly_budget_usd}
+                    onChange={(event) => updateBudgetDraft({ monthly_budget_usd: Number(event.target.value) || 0 })}
+                    className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400/60"
+                  />
+                </label>
+                <label className="grid gap-1 text-xs text-slate-400">
+                  Warn threshold %
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={state.budgetGuard.policy.warn_threshold_percent}
+                    onChange={(event) => updateBudgetDraft({ warn_threshold_percent: Number(event.target.value) || 80 })}
+                    className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400/60"
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3 rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-300">
+                  Hard stop
+                  <input
+                    type="checkbox"
+                    checked={state.budgetGuard.policy.hard_stop_enabled === 1}
+                    onChange={(event) => updateBudgetDraft({ hard_stop_enabled: event.target.checked ? 1 : 0 })}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={saveBudgetPolicy}
+                  disabled={budgetBusy}
+                  className="rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+                >
+                  {budgetBusy ? "Saving..." : "Save budget policy"}
+                </button>
+              </div>
+              <div className="mt-4 grid gap-2">
+                {state.budgetGuard.nextActions.map((action) => (
+                  <div key={action} className="rounded-md bg-slate-950 px-3 py-2 text-xs leading-5 text-slate-300">
+                    {action}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {state.backupReadiness && (
         <section className="rounded-lg border border-slate-700/70 bg-slate-950/70">
           <div className="flex flex-col gap-2 border-b border-slate-700/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="font-semibold text-slate-100">Backup readiness</h3>
               <p className="mt-0.5 text-xs text-slate-400">
-                SQLite, WAL, logs, and security audit sources for long-running operation
+                SQLite, WAL, logs, and security audit sources. Automatic retention: {state.backupRetentionDays} day(s)
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={runManualBackup}
+                disabled={backupBusy}
+                className="rounded-md bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-500 disabled:opacity-50"
+              >
+                {backupBusy ? "Backing up..." : "Run backup now"}
+              </button>
               <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(state.backupReadiness.ready ? "completed" : "needs_info")}`}>
                 {state.backupReadiness.ready ? "ready" : "needs setup"}
               </span>
@@ -1273,6 +1498,103 @@ export default function GuildAiPanel() {
                   </div>
                 ))}
               </div>
+              <div className="mt-4 text-xs font-medium uppercase tracking-wide text-slate-500">Latest snapshots</div>
+              <div className="mt-2 grid gap-2">
+                {state.backupSnapshots.slice(0, 4).map((snapshot) => (
+                  <div key={snapshot.id} className="rounded-md bg-slate-950 px-3 py-2 text-xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={snapshot.status === "succeeded" ? "text-emerald-300" : "text-rose-300"}>
+                        {snapshot.status}
+                      </span>
+                      <span className="text-slate-500">{formatDate(snapshot.created_at)}</span>
+                    </div>
+                    <div className="mt-1 truncate font-mono text-[11px] text-slate-500">{snapshot.backup_dir}</div>
+                  </div>
+                ))}
+                {state.backupSnapshots.length === 0 && (
+                  <div className="rounded-md bg-slate-950 px-3 py-2 text-xs text-slate-500">No backup snapshots yet.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {state.workerQueue && (
+        <section className="rounded-lg border border-slate-700/70 bg-slate-950/70">
+          <div className="flex flex-col gap-2 border-b border-slate-700/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="font-semibold text-slate-100">Real worker queue</h3>
+              <p className="mt-0.5 text-xs text-slate-400">
+                Persistent queue lane for background work. Processing checks Budget Guard before taking a job.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[11px]">
+              {Object.entries(state.workerQueue.counts).map(([key, value]) => (
+                <span key={key} className="rounded-full border border-slate-700 px-2 py-0.5 text-slate-300">
+                  {key}: {value}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-4 p-4 lg:grid-cols-[340px_1fr]">
+            <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+              <label className="grid gap-1 text-xs text-slate-400">
+                Queue job title
+                <input
+                  value={queueTitle}
+                  onChange={(event) => setQueueTitle(event.target.value)}
+                  className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-400/60"
+                />
+              </label>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={enqueueWorkerJob}
+                  disabled={queueBusy}
+                  className="rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+                >
+                  Enqueue
+                </button>
+                <button
+                  type="button"
+                  onClick={processNextWorkerJob}
+                  disabled={queueBusy || state.budgetGuard?.verdict === "blocked"}
+                  className="rounded-md bg-sky-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-sky-500 disabled:opacity-50"
+                >
+                  Process next
+                </button>
+              </div>
+              {state.budgetGuard?.verdict === "blocked" && (
+                <div className="mt-3 rounded-md border border-rose-500/40 bg-rose-950/30 px-3 py-2 text-xs text-rose-200">
+                  Queue processing is paused by Budget Guard.
+                </div>
+              )}
+            </div>
+            <div className="grid gap-2">
+              {state.workerQueueItems.slice(0, 8).map((item) => (
+                <div key={item.id} className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium text-slate-100">{item.title}</div>
+                      <div className="mt-1 font-mono text-[11px] text-slate-500">{item.id}</div>
+                    </div>
+                    <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(item.status === "failed" ? "rejected" : item.status === "succeeded" ? "completed" : item.status === "running" ? "watch" : "ready")}`}>
+                      {item.status}
+                    </span>
+                  </div>
+                  <div className="mt-2 grid gap-2 text-xs text-slate-400 sm:grid-cols-3">
+                    <div>Priority {item.priority}</div>
+                    <div>Attempts {item.attempts}/{item.max_attempts}</div>
+                    <div>{formatDate(item.updated_at)}</div>
+                  </div>
+                </div>
+              ))}
+              {state.workerQueueItems.length === 0 && (
+                <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4 text-sm text-slate-500">
+                  Queue is empty.
+                </div>
+              )}
             </div>
           </div>
         </section>
