@@ -341,6 +341,16 @@ export default function GuildAiPanel() {
     }, {});
   }, [state.accounts]);
 
+  const smokeResultArtifact = useMemo(() => {
+    return taskArtifactSnapshot?.artifacts.find((artifact) => artifact.name === "SMOKE_RESULT.md") ?? null;
+  }, [taskArtifactSnapshot]);
+
+  const smokeEvidenceCompleted = Boolean(
+    smokeResultArtifact?.exists &&
+      smokeResultArtifact.content.trim() &&
+      !smokeResultArtifact.content.includes("Pending agent execution."),
+  );
+
   const decide = async (proposalId: string) => {
     const form = decisionForms[proposalId] ?? defaultDecisionForm;
     setBusyProposalId(proposalId);
@@ -985,23 +995,45 @@ export default function GuildAiPanel() {
                   {taskSmokeResult.status}
                 </span>
               </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                    smokeEvidenceCompleted ? statusClass("completed") : statusClass("needs_info")
+                  }`}
+                >
+                  {smokeEvidenceCompleted ? "evidence ready" : "evidence pending"}
+                </span>
+                {smokeResultArtifact?.updatedAt && (
+                  <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[11px] text-slate-400">
+                    result {formatDate(smokeResultArtifact.updatedAt)}
+                  </span>
+                )}
+              </div>
               <div className="mt-2 grid gap-1 font-mono text-[11px] text-slate-400">
                 <div className="truncate">task: {taskSmokeResult.taskId}</div>
                 <div className="truncate">project: {taskSmokeResult.projectId}</div>
                 <div className="truncate">path: {taskSmokeResult.projectPath}</div>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
-                {(["worker_done", "qa_fail", "qa_pass", "techlead_escalate"] as const).map((decision) => (
-                  <button
-                    key={decision}
-                    type="button"
-                    disabled={taskRouteBusy !== null}
-                    onClick={() => void routeTaskSmoke(decision)}
-                    className="rounded-md border border-slate-700 px-2.5 py-1 text-xs text-slate-200 transition hover:bg-slate-800 disabled:opacity-50"
-                  >
-                    {taskRouteBusy === decision ? "Routing..." : decision}
-                  </button>
-                ))}
+                {(["worker_done", "qa_fail", "qa_pass", "techlead_escalate"] as const).map((decision) => {
+                  const disabled = taskRouteBusy !== null || (decision === "qa_pass" && !smokeEvidenceCompleted);
+                  return (
+                    <button
+                      key={decision}
+                      type="button"
+                      disabled={disabled}
+                      title={
+                        decision === "qa_pass" && !smokeEvidenceCompleted
+                          ? "QA approval requires completed SMOKE_RESULT.md evidence."
+                          : undefined
+                      }
+                      onClick={() => void routeTaskSmoke(decision)}
+                      className="rounded-md border border-slate-700 px-2.5 py-1 text-xs text-slate-200 transition hover:bg-slate-800 disabled:opacity-50"
+                    >
+                      {taskRouteBusy === decision ? "Routing..." : decision}
+                    </button>
+                  );
+                })}
                 <button
                   type="button"
                   disabled={
