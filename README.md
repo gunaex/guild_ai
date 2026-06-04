@@ -103,6 +103,8 @@ OAUTH_GOOGLE_CLIENT_SECRET=
 
 Key docs:
 
+- [`docs/guild-ai/USER_MANUAL.md`](docs/guild-ai/USER_MANUAL.md)
+- [`docs/guild-ai/TEST_PLAN.md`](docs/guild-ai/TEST_PLAN.md)
 - [`docs/guild-ai/HANDOVER.md`](docs/guild-ai/HANDOVER.md)
 - [`docs/guild-ai/ROADMAP.md`](docs/guild-ai/ROADMAP.md)
 - [`docs/guild-ai/SPEED_LANE.md`](docs/guild-ai/SPEED_LANE.md)
