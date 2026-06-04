@@ -70,11 +70,15 @@ sudo systemctl enable --now guild-ai-docker.service
 
 ## LAN And Internet Notes
 
+Before exposing Guild AI beyond this machine, open the Guild AI panel and check `Deployment readiness`.
+
 For LAN use:
 
 - Set a strong `API_AUTH_TOKEN` before exposing non-local access.
 - Keep `.env` private.
 - Restrict access with firewall rules.
+- Configure `ALLOWED_ORIGINS` or `ALLOWED_ORIGIN_SUFFIXES`.
+- Prefer production static serving over Vite dev mode for long-running service.
 
 For internet use:
 
@@ -82,3 +86,4 @@ For internet use:
 - Put Guild AI behind an HTTPS reverse proxy.
 - Use auth on all admin/API routes.
 - Back up SQLite and optional ChromaDB volumes.
+- Set `GUILD_AI_HTTPS_PROXY=1` only after HTTPS reverse proxy, firewall, and auth are actually in place.

@@ -13,6 +13,16 @@ import {
 } from "../guild-ai/accounting-journal.ts";
 import { buildGuildSgmBriefing } from "../guild-ai/briefing.ts";
 import {
+  ALLOWED_ORIGINS,
+  ALLOWED_ORIGIN_SUFFIXES,
+  API_AUTH_TOKEN,
+  HOST,
+  PORT,
+} from "../../config/runtime.ts";
+import {
+  buildGuildDeploymentReadiness,
+} from "../guild-ai/deployment-readiness.ts";
+import {
   decideGuildGovernanceRequest,
   listGuildGovernanceRequests,
   listGuildHrReviews,
@@ -145,6 +155,25 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
   app.get("/api/guild-ai/visual/:guildId/manifest", (req, res) => {
     const guildId = req.params.guildId;
     res.json({ ok: true, manifest: buildGuildVisualManifest(db, guildId, nowMs()) });
+  });
+
+  app.get("/api/guild-ai/deployment/:guildId/readiness", (req, res) => {
+    const guildId = req.params.guildId;
+    res.json({
+      ok: true,
+      readiness: buildGuildDeploymentReadiness({
+        guildId,
+        generatedAt: nowMs(),
+        host: HOST,
+        port: PORT,
+        apiAuthToken: API_AUTH_TOKEN,
+        allowedOrigins: ALLOWED_ORIGINS,
+        allowedOriginSuffixes: ALLOWED_ORIGIN_SUFFIXES,
+        logsDir: ctx.logsDir,
+        viteDev: Boolean(process.env.VITE_DEV),
+        internetProxyEnabled: process.env.GUILD_AI_HTTPS_PROXY === "1",
+      }),
+    });
   });
 
   app.get("/api/guild-ai/runtime/:guildId/bindings", (req, res) => {

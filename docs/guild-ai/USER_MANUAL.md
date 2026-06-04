@@ -24,6 +24,7 @@ Guild AI ตอนนี้คือบริษัท AI local-first ที่�
 - มี model limit governance เพื่อหยุดเฉพาะ model/provider ที่ติด limit
 - มี L2 memory แบบ SQLite สำหรับจำ operating notes, advice, decisions, และ accounting context
 - มี HR governance review และ human decision gate ก่อน termination/replacement
+- มี Deployment readiness สำหรับเช็คก่อนเปิดใช้งานบน LAN/internet
 
 คิดง่ายๆ คือ ตอนนี้เรามี "บริษัท AI local ตัวแรก" ที่ใช้ทดสอบงาน, governance, accounting, และ runtime control ได้แล้ว
 
@@ -128,6 +129,12 @@ Guild AI local MVP check: PASS (10/10)
    - ถ้าคะแนนต่ำกว่าพื้นฐาน ระบบสร้าง governance request
    - termination/replacement ต้องรอ human decision
    - decision ถูกบันทึกกลับเข้า memory/governance trail
+
+11. Deployment Readiness
+   - ตรวจว่า server bind แค่ local หรือพร้อม LAN
+   - ตรวจ `API_AUTH_TOKEN`, allowed origins, CSRF, audit log, dev-server exposure
+   - internet mode ต้องมี HTTPS reverse proxy และไม่ควรใช้ Vite dev server
+   - ใช้เป็น checkpoint ก่อนเปิดให้เครื่องอื่นเข้าถึง
 
 ## 5. Workflow แรกที่ควรลอง
 
@@ -389,9 +396,10 @@ git push
 9. ใช้รับคำแนะนำจาก SGM Advisor
 10. ใช้บันทึก L2 memory เพื่อให้ guild จำบริบทสำคัญ
 11. ใช้บันทึก HR review และ human governance decision
-12. ใช้เก็บ model limit events เพื่อคุมต้นทุน
-13. ใช้เป็นฐานสำหรับ LAN/autostart
-14. ใช้เป็นฐานต่อ ChromaDB L3 memory ในอนาคต
+12. ใช้ตรวจ deployment readiness ก่อนเปิด LAN/internet
+13. ใช้เก็บ model limit events เพื่อคุมต้นทุน
+14. ใช้เป็นฐานสำหรับ LAN/autostart
+15. ใช้เป็นฐานต่อ ChromaDB L3 memory ในอนาคต
 
 ## 12. สิ่งที่ยังไม่ควรทำ
 

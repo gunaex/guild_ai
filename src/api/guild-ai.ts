@@ -112,6 +112,24 @@ export type GuildAiMemoryRecord = {
   created_at: number;
 };
 
+export type GuildAiDeploymentReadiness = {
+  guildId: string;
+  generatedAt: number;
+  mode: "local" | "lan" | "internet";
+  host: string;
+  port: number;
+  localOnly: boolean;
+  readyForLan: boolean;
+  readyForInternet: boolean;
+  gates: Array<{
+    key: "binding" | "auth" | "origin" | "csrf" | "audit" | "dev_server" | "internet";
+    label: string;
+    status: "ready" | "watch" | "blocked";
+    detail: string;
+  }>;
+  nextActions: string[];
+};
+
 export type GuildAiHrReview = {
   id: number;
   guild_id: string;
@@ -512,6 +530,12 @@ export async function getGuildAiVisualManifest(
   guildId: string,
 ): Promise<{ ok: boolean; manifest: GuildAiVisualManifest }> {
   return request(`/api/guild-ai/visual/${encodeURIComponent(guildId)}/manifest`);
+}
+
+export async function getGuildAiDeploymentReadiness(
+  guildId: string,
+): Promise<{ ok: boolean; readiness: GuildAiDeploymentReadiness }> {
+  return request(`/api/guild-ai/deployment/${encodeURIComponent(guildId)}/readiness`);
 }
 
 export async function bootstrapGuildAiOllamaRuntime(

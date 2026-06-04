@@ -55,6 +55,7 @@ Guild AI adds a practical autonomous-organization layer:
 - Self-improvement governance with proposals, human decisions, event history, and SGM Advisor advice.
 - SQLite L2 memory for durable operating notes, advice, governance decisions, and accounting context.
 - HR governance reviews with human-approved termination/replacement request gates.
+- Deployment readiness gates for local, LAN, and internet exposure safety.
 - AI model limit governance that pauses only the limited provider/model and keeps other runtimes moving.
 - Guarded scratch task smoke workflows for Worker -> QA -> retry/escalation validation.
 

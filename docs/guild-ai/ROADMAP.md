@@ -68,9 +68,9 @@ Guardrail:
 
 AI can propose upgrades, experiments, and learning advice. Humans approve level upgrades and production-impacting changes.
 
-## Phase 2 - Queue Engine
+## Phase 2 - Queue Engine And Local Deployment
 
-Status: local-first MVP accepted; LAN/autostart hardening is next.
+Status: local-first MVP accepted; deployment readiness gates are active.
 
 Prerequisite:
 
@@ -107,6 +107,7 @@ bash scripts/bootstrap-claw-fork.sh ../guild-ai-claw-fork
 - Latest local acceptance passed 10/10 gates against the running fork server.
 - `qa_pass` for Guild smoke tasks is gated on completed `SMOKE_RESULT.md` evidence.
 - Escalate repeated failure to Tech Lead and PM with accounting/governance evidence.
+- Deployment readiness API and panel gate local/LAN/internet exposure before operators bind services outside loopback.
 
 ## Phase 3 - HR Governance
 

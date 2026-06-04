@@ -9,6 +9,7 @@ import {
   getGuildAiAccounting,
   getGuildAiBriefing,
   getGuildAiCapabilities,
+  getGuildAiDeploymentReadiness,
   getGuildAiTaskArtifacts,
   getGuildAiHealth,
   getGuildAiTaskLogs,
@@ -39,6 +40,7 @@ import {
   type GuildAiAccountingSummary,
   type GuildAiAdvice,
   type GuildAiCapability,
+  type GuildAiDeploymentReadiness,
   type GuildAiGovernanceRequest,
   type GuildAiHrReview,
   type GuildAiUpgradeEvent,
@@ -79,6 +81,7 @@ type LoadState = {
   modelPricing: GuildAiModelPricing[];
   runtimeBindings: GuildAiRuntimeBinding[];
   visualManifest: GuildAiVisualManifest | null;
+  deploymentReadiness: GuildAiDeploymentReadiness | null;
   briefing: GuildAiSgmBriefing | null;
   pendingUpgrades: number;
   vectorDbProvider: string;
@@ -139,6 +142,7 @@ const emptyState: LoadState = {
   modelPricing: [],
   runtimeBindings: [],
   visualManifest: null,
+  deploymentReadiness: null,
   briefing: null,
   pendingUpgrades: 0,
   vectorDbProvider: "none",
@@ -319,6 +323,7 @@ export default function GuildAiPanel() {
         modelPricing,
         runtimeBindings,
         visualManifest,
+        deploymentReadiness,
         briefing,
       ] = await Promise.all([
         getGuildAiHealth(),
@@ -336,6 +341,7 @@ export default function GuildAiPanel() {
         listGuildAiModelPricing(guildId),
         listGuildAiRuntimeBindings(guildId),
         getGuildAiVisualManifest(guildId),
+        getGuildAiDeploymentReadiness(guildId),
         getGuildAiBriefing(guildId),
       ]);
       setState({
@@ -355,6 +361,7 @@ export default function GuildAiPanel() {
         modelPricing: modelPricing.pricing,
         runtimeBindings: runtimeBindings.bindings,
         visualManifest: visualManifest.manifest,
+        deploymentReadiness: deploymentReadiness.readiness,
         briefing: briefing.briefing,
         pendingUpgrades: health.pendingUpgrades,
         vectorDbProvider: health.vectorDbProvider,
@@ -991,6 +998,56 @@ export default function GuildAiPanel() {
           </div>
         </div>
       </section>
+
+      {state.deploymentReadiness && (
+        <section className="rounded-lg border border-slate-700/70 bg-slate-950/70">
+          <div className="flex flex-col gap-2 border-b border-slate-700/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="font-semibold text-slate-100">Deployment readiness</h3>
+              <p className="mt-0.5 text-xs text-slate-400">
+                Local, LAN, and internet exposure gates for long-running Guild AI service
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(state.deploymentReadiness.mode === "local" ? "watch" : "ready")}`}>
+                {state.deploymentReadiness.mode}
+              </span>
+              <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(state.deploymentReadiness.readyForLan ? "completed" : "needs_info")}`}>
+                {state.deploymentReadiness.readyForLan ? "LAN ready" : "LAN gated"}
+              </span>
+            </div>
+          </div>
+          <div className="grid gap-4 p-4 lg:grid-cols-[1fr_320px]">
+            <div className="grid gap-2 md:grid-cols-2">
+              {state.deploymentReadiness.gates.map((gate) => (
+                <div key={gate.key} className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-sm font-medium text-slate-100">{gate.label}</div>
+                    <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(gate.status === "blocked" ? "rejected" : gate.status)}`}>
+                      {gate.status}
+                    </span>
+                  </div>
+                  <div className="mt-2 text-xs leading-5 text-slate-400">{gate.detail}</div>
+                </div>
+              ))}
+            </div>
+            <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+              <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Network</div>
+              <div className="mt-2 font-mono text-sm text-slate-200">
+                {state.deploymentReadiness.host}:{state.deploymentReadiness.port}
+              </div>
+              <div className="mt-4 text-xs font-medium uppercase tracking-wide text-slate-500">Next actions</div>
+              <div className="mt-2 grid gap-2">
+                {state.deploymentReadiness.nextActions.map((action) => (
+                  <div key={action} className="rounded-md bg-slate-950 px-3 py-2 text-xs leading-5 text-slate-300">
+                    {action}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {state.briefing && (
         <section className="rounded-lg border border-slate-700/70 bg-slate-950/70">
