@@ -147,6 +147,30 @@ CREATE TABLE IF NOT EXISTS guild_worker_queue (
   updated_at INTEGER DEFAULT (unixepoch()*1000)
 );
 
+CREATE TABLE IF NOT EXISTS guild_community_sessions (
+  id TEXT PRIMARY KEY,
+  guild_id TEXT NOT NULL,
+  topic TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'completed' CHECK(status IN ('completed','skipped','failed')),
+  summary TEXT NOT NULL DEFAULT '',
+  insight_json TEXT NOT NULL DEFAULT '{}',
+  started_at INTEGER NOT NULL,
+  ended_at INTEGER,
+  created_at INTEGER DEFAULT (unixepoch()*1000)
+);
+
+CREATE TABLE IF NOT EXISTS guild_community_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id TEXT NOT NULL REFERENCES guild_community_sessions(id) ON DELETE CASCADE,
+  guild_id TEXT NOT NULL,
+  agent_id TEXT,
+  agent_name TEXT NOT NULL,
+  role_key TEXT NOT NULL,
+  message_type TEXT NOT NULL DEFAULT 'chat' CHECK(message_type IN ('chat','insight','recommendation','system')),
+  content TEXT NOT NULL,
+  created_at INTEGER DEFAULT (unixepoch()*1000)
+);
+
 CREATE TABLE IF NOT EXISTS guild_memory_records (
   id TEXT PRIMARY KEY,
   guild_id TEXT NOT NULL,
@@ -293,6 +317,8 @@ CREATE INDEX IF NOT EXISTS idx_guild_ai_limit_events_active ON guild_ai_limit_ev
 CREATE INDEX IF NOT EXISTS idx_guild_ai_limit_events_guild_created ON guild_ai_limit_events(guild_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_guild_backup_snapshots_guild_created ON guild_backup_snapshots(guild_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_guild_worker_queue_status ON guild_worker_queue(guild_id, status, priority, created_at);
+CREATE INDEX IF NOT EXISTS idx_guild_community_sessions_guild_created ON guild_community_sessions(guild_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_guild_community_messages_session ON guild_community_messages(session_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_guild_memory_records_lookup ON guild_memory_records(guild_id, namespace, created_at);
 CREATE INDEX IF NOT EXISTS idx_guild_hr_reviews_agent ON guild_hr_reviews(guild_id, agent_id, review_date);
 CREATE INDEX IF NOT EXISTS idx_guild_upgrade_proposals_status ON guild_upgrade_proposals(guild_id, status, created_at);

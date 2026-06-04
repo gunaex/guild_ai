@@ -353,6 +353,14 @@ npm run check
 16. เพิ่ม budget ให้ไม่ blocked แล้วกด `Process next`
 17. ตรวจ queue item เปลี่ยนเป็น `succeeded`
 18. กด Generate Daily PM report แล้วตรวจว่ามี Backup section / Backup restore status
+19. ดู `Community Lounge`
+20. ตรวจว่ามี eligible participants อย่างน้อย 2 คนจากสถานะ break/idle/available
+21. ใส่ lounge topic แล้วกด `Start lounge session`
+22. ตรวจว่า latest discussion แสดง status `completed`
+23. ตรวจ conversation ว่ามี Knowledge Steward และ agent messages
+24. ไปที่ L2 memory แล้วตรวจว่ามี memory namespace `learning`
+25. ไปที่ SGM Advisor / advice list แล้วตรวจว่ามี `Community Lounge learning suggestion`
+26. กด Generate Daily PM report อีกครั้ง แล้วตรวจว่า `Lounge 24h` มากกว่า 0 และ markdown มี Community section
 
 คำสั่ง verify:
 
@@ -370,6 +378,7 @@ npm run test:api
 - Backup snapshot ที่ผ่านต้องเปิด SQLite restore proof ได้
 - Daily PM report แสดง backup/restore status
 - Worker queue เคารพ Budget Guard ก่อน process งาน
+- Community Lounge สร้าง learning memory, SGM advice, และ daily PM evidence ได้
 
 ## 15. Pass Criteria
 
@@ -418,5 +427,7 @@ npm run test:api
 - [ ] `npm run build` ผ่าน
 - [ ] `npm run test:api` ผ่าน
 - [ ] `npm run test:web` ผ่าน
+- [ ] Community Lounge completed session สร้าง learning memory และ SGM advice
+- [ ] Daily PM report แสดง Community section / Lounge 24h
 - [ ] `bash scripts/package-guild-overlay.sh` ผ่าน
 - [ ] `npm run check` ฝั่ง main scaffold ผ่าน

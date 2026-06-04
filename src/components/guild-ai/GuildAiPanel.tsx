@@ -18,6 +18,8 @@ import {
   getGuildAiHealth,
   getGuildAiLaunchReadiness,
   getLatestGuildAiPmDailyReport,
+  listGuildAiCommunityParticipants,
+  listGuildAiCommunitySessions,
   getGuildAiTaskLogs,
   getGuildAiVectorMemoryStatus,
   getGuildAiVisualManifest,
@@ -47,6 +49,7 @@ import {
   runGuildAiRuntimeSmoke,
   scoreGuildAiDailyProductivity,
   stageGuildAiTaskSmoke,
+  startGuildAiCommunitySession,
   updateGuildAiBudgetPolicy,
   upsertGuildAiModelPricing,
   type GuildAiAccount,
@@ -56,6 +59,9 @@ import {
   type GuildAiBackupSnapshot,
   type GuildAiBudgetGuardStatus,
   type GuildAiCapability,
+  type GuildAiCommunityParticipant,
+  type GuildAiCommunitySession,
+  type GuildAiCommunitySessionDetail,
   type GuildAiDeploymentReadiness,
   type GuildAiGovernanceRequest,
   type GuildAiHrReview,
@@ -109,6 +115,8 @@ type LoadState = {
   budgetGuard: GuildAiBudgetGuardStatus | null;
   workerQueue: GuildAiWorkerQueueStatus | null;
   workerQueueItems: GuildAiWorkerQueueItem[];
+  communityParticipants: GuildAiCommunityParticipant[];
+  communitySessions: GuildAiCommunitySession[];
   launchReadiness: GuildAiLaunchReadiness | null;
   pmDailyReport: GuildAiPmDailyReport | null;
   vectorMemoryStatus: GuildAiVectorMemoryStatus | null;
@@ -179,6 +187,8 @@ const emptyState: LoadState = {
   budgetGuard: null,
   workerQueue: null,
   workerQueueItems: [],
+  communityParticipants: [],
+  communitySessions: [],
   launchReadiness: null,
   pmDailyReport: null,
   vectorMemoryStatus: null,
@@ -346,6 +356,9 @@ export default function GuildAiPanel() {
   const [budgetBusy, setBudgetBusy] = useState(false);
   const [queueBusy, setQueueBusy] = useState(false);
   const [queueTitle, setQueueTitle] = useState("Secretary intake follow-up");
+  const [communityBusy, setCommunityBusy] = useState(false);
+  const [communityTopic, setCommunityTopic] = useState("What can we improve together during this break?");
+  const [communityDetail, setCommunityDetail] = useState<GuildAiCommunitySessionDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (guildId: string) => {
@@ -373,6 +386,8 @@ export default function GuildAiPanel() {
         backupSnapshots,
         budgetGuard,
         workerQueue,
+        communityParticipants,
+        communitySessions,
         launchReadiness,
         pmDailyReport,
         vectorMemoryStatus,
@@ -398,6 +413,8 @@ export default function GuildAiPanel() {
         listGuildAiBackupSnapshots(guildId),
         getGuildAiBudgetGuard(guildId),
         getGuildAiWorkerQueue(guildId),
+        listGuildAiCommunityParticipants(guildId),
+        listGuildAiCommunitySessions(guildId),
         getGuildAiLaunchReadiness(guildId),
         getLatestGuildAiPmDailyReport(guildId),
         getGuildAiVectorMemoryStatus(guildId),
@@ -427,6 +444,8 @@ export default function GuildAiPanel() {
         budgetGuard: budgetGuard.budget,
         workerQueue: workerQueue.queue,
         workerQueueItems: workerQueue.items,
+        communityParticipants: communityParticipants.participants,
+        communitySessions: communitySessions.sessions,
         launchReadiness: launchReadiness.readiness,
         pmDailyReport: pmDailyReport.report,
         vectorMemoryStatus: vectorMemoryStatus.status,
@@ -447,6 +466,10 @@ export default function GuildAiPanel() {
   useEffect(() => {
     void load(selectedGuildId);
   }, [load, selectedGuildId]);
+
+  useEffect(() => {
+    setCommunityDetail(null);
+  }, [selectedGuildId]);
 
   const groupedAccounts = useMemo(() => {
     return state.accounts.reduce<Record<string, GuildAiAccount[]>>((acc, account) => {
@@ -688,6 +711,28 @@ export default function GuildAiPanel() {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setQueueBusy(false);
+    }
+  };
+
+  const startCommunityLounge = async () => {
+    setCommunityBusy(true);
+    setError(null);
+    try {
+      const detail = await startGuildAiCommunitySession(selectedGuildId, {
+        topic: communityTopic.trim() || undefined,
+        maxParticipants: 6,
+      });
+      setCommunityDetail({
+        session: detail.session,
+        messages: detail.messages,
+        participants: detail.participants,
+      });
+      setCommunityTopic("What can we improve together during this break?");
+      await load(selectedGuildId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCommunityBusy(false);
     }
   };
 
@@ -1098,6 +1143,7 @@ export default function GuildAiPanel() {
             <Metric label="Launch score" value={state.pmDailyReport ? `${state.pmDailyReport.summary.launchScore}%` : "-"} />
             <Metric label="Done 24h" value={state.pmDailyReport?.summary.tasks.done24h ?? 0} />
             <Metric label="Backup restore" value={state.pmDailyReport?.summary.backup.restoreStatus ?? "-"} />
+            <Metric label="Lounge 24h" value={state.pmDailyReport?.summary.community?.sessions24h ?? 0} />
             <Metric
               label="Avg productivity"
               value={
@@ -1130,6 +1176,115 @@ export default function GuildAiPanel() {
             ) : (
               <div className="text-sm text-slate-400">No PM daily report yet.</div>
             )}
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-emerald-500/30 bg-emerald-950/20">
+        <div className="flex flex-col gap-2 border-b border-emerald-500/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="font-semibold text-emerald-100">Community Lounge</h3>
+            <p className="mt-0.5 text-xs text-emerald-100/70">
+              Break-time agent discussion that creates learning memory and SGM advice.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-[11px]">
+            <span className="rounded-full border border-emerald-400/40 px-2 py-0.5 text-emerald-100">
+              {state.communityParticipants.length} available
+            </span>
+            <span className="rounded-full border border-emerald-400/40 px-2 py-0.5 text-emerald-100">
+              {state.communitySessions.length} sessions
+            </span>
+          </div>
+        </div>
+        <div className="grid gap-4 p-4 xl:grid-cols-[360px_1fr]">
+          <div className="rounded-lg border border-emerald-500/20 bg-slate-950/70 p-3">
+            <label className="grid gap-1 text-xs text-slate-400">
+              Lounge topic
+              <textarea
+                value={communityTopic}
+                onChange={(event) => setCommunityTopic(event.target.value)}
+                rows={3}
+                className="resize-none rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm leading-6 text-slate-100 outline-none transition focus:border-emerald-400/60"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={startCommunityLounge}
+              disabled={communityBusy}
+              className="mt-3 rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+            >
+              {communityBusy ? "Starting..." : "Start lounge session"}
+            </button>
+            {state.communityParticipants.length < 2 && (
+              <div className="mt-3 rounded-md border border-amber-500/40 bg-amber-950/30 px-3 py-2 text-xs leading-5 text-amber-100">
+                The lounge needs at least two break, idle, or available Guild agents.
+              </div>
+            )}
+            <div className="mt-4 text-xs font-medium uppercase tracking-wide text-slate-500">Eligible participants</div>
+            <div className="mt-2 grid gap-2">
+              {state.communityParticipants.slice(0, 6).map((participant) => (
+                <div key={participant.agentId} className="flex items-center justify-between gap-3 rounded-md bg-slate-900 px-3 py-2 text-xs">
+                  <div className="min-w-0">
+                    <div className="truncate font-medium text-slate-100">{participant.displayName}</div>
+                    <div className="text-slate-500">{participant.roleKey}</div>
+                  </div>
+                  <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(participant.status === "break" ? "completed" : "watch")}`}>
+                    {participant.status}
+                  </span>
+                </div>
+              ))}
+              {state.communityParticipants.length === 0 && (
+                <div className="rounded-md bg-slate-900 px-3 py-2 text-xs text-slate-500">No eligible participants yet.</div>
+              )}
+            </div>
+          </div>
+          <div className="grid gap-3">
+            <div className="rounded-lg border border-emerald-500/20 bg-slate-950/70 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="text-sm font-medium text-slate-100">Latest discussion</div>
+                  <div className="mt-0.5 text-xs text-slate-500">
+                    {communityDetail ? formatDate(communityDetail.session.created_at) : formatDate(state.communitySessions[0]?.created_at ?? null)}
+                  </div>
+                </div>
+                <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass((communityDetail?.session.status ?? state.communitySessions[0]?.status ?? "watch") === "completed" ? "completed" : "watch")}`}>
+                  {communityDetail?.session.status ?? state.communitySessions[0]?.status ?? "no session"}
+                </span>
+              </div>
+              <div className="mt-3 text-sm leading-6 text-slate-200">
+                {communityDetail?.session.summary ?? state.communitySessions[0]?.summary ?? "Start a lounge session to create learning memory from agent break-time discussion."}
+              </div>
+            </div>
+            {communityDetail && (
+              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Conversation</div>
+                <div className="mt-3 grid gap-2">
+                  {communityDetail.messages.map((message) => (
+                    <div key={message.id} className="rounded-md bg-slate-950 px-3 py-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-xs font-medium text-slate-100">{message.agent_name}</span>
+                        <span className="text-[11px] text-slate-500">{message.message_type}</span>
+                      </div>
+                      <div className="mt-1 text-xs leading-5 text-slate-300">{message.content}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="grid gap-2 md:grid-cols-2">
+              {state.communitySessions.slice(0, 4).map((session) => (
+                <div key={session.id} className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="truncate text-sm font-medium text-slate-100">{session.topic}</div>
+                    <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(session.status === "completed" ? "completed" : "watch")}`}>
+                      {session.status}
+                    </span>
+                  </div>
+                  <div className="mt-2 text-xs leading-5 text-slate-400">{session.summary}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>

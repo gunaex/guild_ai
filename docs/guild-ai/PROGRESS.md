@@ -157,6 +157,7 @@ This local repo currently contains a clean Guild AI scaffold, not the upstream f
 - Added real worker queue MVP with persistent queue table, enqueue/list/process-next API, Budget Guard blocking, and Guild AI panel controls.
 - Added backup restore proof verification and Daily PM backup/restore status so snapshots are not trusted unless SQLite restore checks pass.
 - Added Learning Community design note for evolving the Library into an active Knowledge Steward culture loop.
+- Added Community Lounge implementation: break/idle/available agent participants, session/message storage, Knowledge Steward facilitator output, learning memory capture, SGM advice creation, Guild AI panel controls, and Daily PM community evidence.
 
 ## Verified
 
@@ -194,6 +195,10 @@ Verified fork routes:
 - `GET /api/guild-ai/visual/ecom-001/manifest`
 - `GET /api/guild-ai/deployment/ecom-001/readiness`
 - `GET /api/guild-ai/backup/ecom-001/readiness`
+- `GET /api/guild-ai/community/ecom-001/participants`
+- `GET /api/guild-ai/community/ecom-001/sessions`
+- `POST /api/guild-ai/community/ecom-001/sessions`
+- `GET /api/guild-ai/community/sessions/:sessionId`
 - `GET /api/guild-ai/launch/ecom-001/readiness`
 - `POST /api/guild-ai/upgrades/proposals`
 - `GET /api/guild-ai/upgrades/ecom-001`
@@ -229,6 +234,7 @@ Latest fork test result:
 
 - API: 72 test files passed, 272 tests passed.
 - API latest: 75 test files passed, 275 tests passed.
+- API latest after Community Lounge: 76 test files passed, 277 tests passed.
 - Web: 25 test files passed, 76 tests passed.
 - Build: `npm run build` passed.
 - Local MVP acceptance: `npm run guild:mvp-check` passed, 10/10 gates.

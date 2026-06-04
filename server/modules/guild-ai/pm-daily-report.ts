@@ -1,6 +1,7 @@
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 import { getProfitAndLossSummary } from "./accounting-journal.ts";
 import { buildGuildSgmBriefing } from "./briefing.ts";
+import { getLatestGuildCommunityInsight } from "./community-lounge.ts";
 import type { GuildLaunchReadiness } from "./launch-readiness.ts";
 
 type DbLike = Pick<DatabaseSync, "prepare">;
@@ -41,6 +42,12 @@ export type GuildPmDailyReportSummary = {
     restoreStatus: "verified" | "failed" | "unknown";
     backupDir: string | null;
     error: string | null;
+  };
+  community: {
+    sessions24h: number;
+    latestAt: number | null;
+    latestTopic: string | null;
+    latestSummary: string | null;
   };
   nextActions: string[];
 };
@@ -90,6 +97,7 @@ function buildNextActions(input: {
   netIncome: number;
   restoreVerified: boolean;
   backupStatus: "succeeded" | "failed" | "none";
+  communitySessions24h: number;
 }): string[] {
   const actions: string[] = [];
   if (input.launch.status !== "ready_for_today") {
@@ -101,6 +109,7 @@ function buildNextActions(input: {
   if (input.netIncome < 0) actions.push("Record service revenue or top up pricing data so P&L reflects real customer income.");
   if (input.backupStatus === "none") actions.push("Run one backup snapshot and verify restore proof before relying on local production data.");
   if (input.backupStatus === "failed" || !input.restoreVerified) actions.push("Fix backup restore proof before considering the system recoverable.");
+  if (input.communitySessions24h === 0) actions.push("Start one Community Lounge break session so agents can turn fresh lessons into learning memory.");
   if (actions.length === 0) actions.push("Continue today's local trial and keep the Guild AI panel open for readiness drift.");
   return [...new Set(actions)].slice(0, 6);
 }
@@ -193,6 +202,11 @@ function renderMarkdown(summary: GuildPmDailyReportSummary): string {
     `- Backup dir: ${summary.backup.backupDir ?? "-"}`,
     ...(summary.backup.error ? [`- Error: ${summary.backup.error}`] : []),
     "",
+    "## Community",
+    `- Lounge sessions in last 24h: ${summary.community.sessions24h}`,
+    `- Latest topic: ${summary.community.latestTopic ?? "-"}`,
+    `- Latest summary: ${summary.community.latestSummary ?? "-"}`,
+    "",
     "## Next Actions",
     ...summary.nextActions.map((action) => `- ${action}`),
     "",
@@ -251,6 +265,7 @@ export function generateGuildPmDailyReport(input: {
   const done24h = count(db, "SELECT COUNT(*) AS count FROM tasks WHERE status = 'done' AND updated_at >= ?", since);
   const inProgress = count(db, "SELECT COUNT(*) AS count FROM tasks WHERE status = 'in_progress'");
   const backup = latestBackupStatus(db, guildId);
+  const community = getLatestGuildCommunityInsight(db, guildId, generatedAt);
   const summary: GuildPmDailyReportSummary = {
     guildId,
     reportDate,
@@ -287,6 +302,7 @@ export function generateGuildPmDailyReport(input: {
           : Math.round(Number(avgProductivityRow.average)),
     },
     backup,
+    community,
     nextActions: buildNextActions({
       launch,
       activeLimits,
@@ -296,6 +312,7 @@ export function generateGuildPmDailyReport(input: {
       netIncome: pnl.netIncome,
       restoreVerified: backup.restoreVerified,
       backupStatus: backup.latestStatus,
+      communitySessions24h: community.sessions24h,
     }),
   };
   const markdown = renderMarkdown(summary);

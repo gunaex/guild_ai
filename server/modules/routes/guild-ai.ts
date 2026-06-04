@@ -37,6 +37,12 @@ import {
 import { buildGuildLaunchReadiness } from "../guild-ai/launch-readiness.ts";
 import { getGuildVectorMemoryStatus, queryGuildRagMemory } from "../guild-ai/chroma-memory.ts";
 import {
+  getGuildCommunitySessionDetail,
+  listGuildCommunityParticipants,
+  listGuildCommunitySessions,
+  startGuildCommunityLoungeSession,
+} from "../guild-ai/community-lounge.ts";
+import {
   generateGuildPmDailyReport,
   getLatestGuildPmDailyReport,
   listGuildPmDailyReports,
@@ -229,6 +235,49 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
   app.get("/api/guild-ai/visual/:guildId/bridge-snapshot", (req, res) => {
     const guildId = req.params.guildId;
     res.json({ ok: true, snapshot: buildGuildVisualBridgeSnapshot(db, { guildId, generatedAt: nowMs() }) });
+  });
+
+  app.get("/api/guild-ai/community/:guildId/participants", (req, res) => {
+    const guildId = req.params.guildId;
+    res.json({
+      ok: true,
+      guildId,
+      participants: listGuildCommunityParticipants(db, guildId, asPositiveInt(req.query.limit, 6, 12)),
+    });
+  });
+
+  app.get("/api/guild-ai/community/:guildId/sessions", (req, res) => {
+    const guildId = req.params.guildId;
+    res.json({
+      ok: true,
+      guildId,
+      sessions: listGuildCommunitySessions(db, guildId, asPositiveInt(req.query.limit, 10, 50)),
+    });
+  });
+
+  app.post("/api/guild-ai/community/:guildId/sessions", (req, res) => {
+    const guildId = req.params.guildId;
+    const body = req.body as Record<string, unknown>;
+    try {
+      const detail = startGuildCommunityLoungeSession(db, {
+        guildId,
+        topic: asText(body.topic) || null,
+        maxParticipants: asPositiveInt(body.maxParticipants, 5, 8),
+        now: nowMs(),
+      });
+      res.json({ ok: true, guildId, ...detail });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.get("/api/guild-ai/community/sessions/:sessionId", (req, res) => {
+    const detail = getGuildCommunitySessionDetail(db, req.params.sessionId);
+    if (!detail) {
+      res.status(404).json({ ok: false, error: "Community session not found." });
+      return;
+    }
+    res.json({ ok: true, ...detail });
   });
 
   app.get("/api/guild-ai/deployment/:guildId/readiness", (req, res) => {

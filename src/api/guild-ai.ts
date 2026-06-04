@@ -239,6 +239,44 @@ export type GuildAiWorkerQueueStatus = {
   nextItems: GuildAiWorkerQueueItem[];
 };
 
+export type GuildAiCommunityParticipant = {
+  agentId: string;
+  runtimeAgentId: string | null;
+  displayName: string;
+  roleKey: string;
+  status: "break" | "idle" | "available";
+};
+
+export type GuildAiCommunitySession = {
+  id: string;
+  guild_id: string;
+  topic: string;
+  status: "completed" | "skipped" | "failed";
+  summary: string;
+  insight_json: string;
+  started_at: number;
+  ended_at: number | null;
+  created_at: number;
+};
+
+export type GuildAiCommunityMessage = {
+  id: number;
+  session_id: string;
+  guild_id: string;
+  agent_id: string | null;
+  agent_name: string;
+  role_key: string;
+  message_type: "chat" | "insight" | "recommendation" | "system";
+  content: string;
+  created_at: number;
+};
+
+export type GuildAiCommunitySessionDetail = {
+  session: GuildAiCommunitySession;
+  messages: GuildAiCommunityMessage[];
+  participants: GuildAiCommunityParticipant[];
+};
+
 export type GuildAiLaunchReadiness = {
   guildId: string;
   generatedAt: number;
@@ -297,6 +335,12 @@ export type GuildAiPmDailyReport = {
       restoreStatus: "verified" | "failed" | "unknown";
       backupDir: string | null;
       error: string | null;
+    };
+    community?: {
+      sessions24h: number;
+      latestAt: number | null;
+      latestTopic: string | null;
+      latestSummary: string | null;
     };
     nextActions: string[];
   };
@@ -805,6 +849,31 @@ export async function processNextGuildAiWorkerJob(
   guildId: string,
 ): Promise<{ ok: boolean; guildId: string; item: GuildAiWorkerQueueItem | null; reason?: string }> {
   return post(`/api/guild-ai/queue/${encodeURIComponent(guildId)}/process-next`, {});
+}
+
+export async function listGuildAiCommunityParticipants(
+  guildId: string,
+): Promise<{ ok: boolean; guildId: string; participants: GuildAiCommunityParticipant[] }> {
+  return request(`/api/guild-ai/community/${encodeURIComponent(guildId)}/participants`);
+}
+
+export async function listGuildAiCommunitySessions(
+  guildId: string,
+): Promise<{ ok: boolean; guildId: string; sessions: GuildAiCommunitySession[] }> {
+  return request(`/api/guild-ai/community/${encodeURIComponent(guildId)}/sessions`);
+}
+
+export async function startGuildAiCommunitySession(
+  guildId: string,
+  input?: { topic?: string; maxParticipants?: number },
+): Promise<{ ok: boolean; guildId: string } & GuildAiCommunitySessionDetail> {
+  return post(`/api/guild-ai/community/${encodeURIComponent(guildId)}/sessions`, input ?? {});
+}
+
+export async function getGuildAiCommunitySession(
+  sessionId: string,
+): Promise<{ ok: boolean } & GuildAiCommunitySessionDetail> {
+  return request(`/api/guild-ai/community/sessions/${encodeURIComponent(sessionId)}`);
 }
 
 export async function getGuildAiLaunchReadiness(

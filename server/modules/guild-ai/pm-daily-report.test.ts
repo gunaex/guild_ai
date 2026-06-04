@@ -89,6 +89,19 @@ function seedGuild(db: DatabaseSync, projectPath: string): void {
     JSON.stringify({ restoreProof: { status: "verified", integrity: "ok", requiredTablesPresent: true } }),
     1_780_575_000_000,
   );
+  db.prepare(
+    "INSERT INTO guild_community_sessions (id, guild_id, topic, status, summary, insight_json, started_at, ended_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  ).run(
+    "community-1",
+    "ecom-001",
+    "Library break learning",
+    "completed",
+    "Agents shared one useful Library practice during break.",
+    "{}",
+    1_780_575_500_000,
+    1_780_575_680_000,
+    1_780_575_500_000,
+  );
 }
 
 function buildLaunch(db: DatabaseSync, root: string) {
@@ -125,8 +138,11 @@ describe("Guild AI PM daily report", () => {
       expect(report.summary.launchStatus).toBe("ready_for_today");
       expect(report.summary.finance.revenue).toBe(25);
       expect(report.summary.backup.restoreVerified).toBe(true);
+      expect(report.summary.community.sessions24h).toBe(1);
       expect(report.markdown).toContain("## Backup");
       expect(report.markdown).toContain("Restore proof: verified");
+      expect(report.markdown).toContain("## Community");
+      expect(report.markdown).toContain("Library break learning");
       expect(report.markdown).toContain("Guild AI Daily PM Report");
       expect(getLatestGuildPmDailyReport(db, "ecom-001")?.id).toBe(report.id);
       expect(listGuildPmDailyReports(db, "ecom-001")).toHaveLength(1);
