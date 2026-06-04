@@ -103,6 +103,7 @@ git status
 It contains the first server-side Guild AI module, auto-seeds the default guild template, and includes the first Guild AI UI panel with governance and accounting workflows.
 Local `main` tracks `origin/main`. The previous shallow upstream-derived branch is preserved locally as `upstream-shallow-main`.
 The root `README.md` now includes the Guild AI quick start: clone, install, build, run `./node_modules/.bin/tsx server/index.ts`, bootstrap Ollama runtime, and run the guarded smoke workflow from the Guild AI panel.
+The local-first MVP is now accepted by `npm run guild:mvp-check`, which validates the running local server, Guild template, Thai accounting readiness, operating token/P&L data, runtime bindings, latest smoke task, smoke artifact evidence, SGM briefing, and active model-limit blockers.
 
 ## Current Best Next Code Change
 
@@ -182,11 +183,12 @@ npm run test:api
 
 Result: 46 test files and 203 tests passed outside sandbox.
 
-Latest result after guarded Guild smoke artifact visibility:
+Latest result after local-first MVP acceptance:
 
-- API: 62 test files and 252 tests passed.
+- API: 62 test files and 254 tests passed.
 - Web: 25 test files and 76 tests passed.
 - Build: `npm run build` passed.
+- Local MVP acceptance: `npm run guild:mvp-check` passed, 10/10 gates.
 - Public GitHub repo: `origin/main` at `84586ee feat: publish Guild AI fork snapshot`.
 - Public README: Guild AI fork quick start is present at the top of `README.md`.
 - Browser smoke: Guild AI panel opens from sidebar, renders Thai accounting chart, records sample token spend into journal entries, creates upgrade proposals, renders proposal event history, and creates SGM Advisor advice.

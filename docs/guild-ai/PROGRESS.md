@@ -7,16 +7,16 @@ Last updated: 2026-06-04
 Current estimate:
 
 - Full Guild AI vision: 66%
-- Local-first MVP: 97%
+- Local-first MVP: 100%
 
 Basis:
 
-- Foundation/scaffold: 96%
+- Foundation/scaffold: 97%
 - Claw-Empire fork integration: 75%
-- Guild schema/template/accounting: 88%
+- Guild schema/template/accounting: 90%
 - Self-improvement governance: 66%
-- Local Ollama/runtime binding: 80%
-- Real task execution under Guild control: 87%
+- Local Ollama/runtime binding: 85%
+- Real task execution under Guild control: 90%
 - HR governance: 20%
 - Memory L2/L3 and external tools: 20%
 - LAN/internet hardened deployment: 30%
@@ -133,6 +133,8 @@ This local repo currently contains a clean Guild AI scaffold, not the upstream f
 - Added a smoke QA evidence gate: `qa_pass` now requires a completed `SMOKE_RESULT.md` artifact for Guild smoke tasks, preventing approval when evidence is still pending.
 - Verified the latest real Local Ollama smoke task could close through `qa_pass` only after `SMOKE_RESULT.md` was recorded, moving `cb05c80b...` from QA review to done.
 - Added Guild AI panel evidence status (`evidence ready` / `evidence pending`) and disabled `qa_pass` in the UI until the smoke artifact is complete, matching the backend gate.
+- Added `npm run guild:mvp-check`, a local-first MVP acceptance command that checks the running Guild AI server for health, template seed, Thai accounting readiness, operating accounting data, runtime bindings, latest smoke task state, smoke artifact evidence, SGM briefing, and active model-limit blockers.
+- Verified `npm run guild:mvp-check` against the live local server: 10/10 gates passed.
 
 ## Verified
 
@@ -197,9 +199,10 @@ Latest fork test result:
 - API: 62 test files passed, 254 tests passed.
 - Web: 25 test files passed, 76 tests passed.
 - Build: `npm run build` passed.
+- Local MVP acceptance: `npm run guild:mvp-check` passed, 10/10 gates.
 - Public repo publish: `origin/main` points at `84586ee feat: publish Guild AI fork snapshot`; local docs/README follow-up commits are ready to push.
 - Browser smoke: Guild AI panel visible, Thai accounting chart rendered, sample token spend produced a journal entry, upgrade proposal creation worked, proposal event history rendered, and SGM Advisor advice creation worked.
-- Latest code verification also covered service revenue journal entries, prepaid AI credit top-ups, prepaid credit balance reduction from token usage, API provider prepaid/fallback payment selection, AI provider/model limit event capture, active-limit pause behavior, runtime binding availability display, SGM runtime readiness metrics and readiness checklist, available-binding selection for smoke and route decisions, guarded staged-smoke execution from the Guild AI panel, scratch smoke brief/result files, scratch artifact API/UI visibility, recent smoke task recovery after reload, smoke result fallback recording from provider output, real Local Ollama Worker smoke execution routed to QA, smoke QA evidence gating and done closure, UI evidence status/qa_pass disabling, execution-start preflight switching/blocking for limited Guild runtimes, same-role fallback routing, automatic recovery after cooldown expiry, public-safe OAuth env configuration, GitHub repo publication, README quick start, Guild-aware task route decisions wired into run completion and QA review outcomes, Guild task route UI controls and task log visibility, P&L income calculation, API provider streaming usage parsing, Ollama auto-configuration, Guild runtime binding selection, real Local Ollama runtime bootstrap, and direct-chat token usage capture.
+- Latest code verification also covered service revenue journal entries, prepaid AI credit top-ups, prepaid credit balance reduction from token usage, API provider prepaid/fallback payment selection, AI provider/model limit event capture, active-limit pause behavior, runtime binding availability display, SGM runtime readiness metrics and readiness checklist, available-binding selection for smoke and route decisions, guarded staged-smoke execution from the Guild AI panel, scratch smoke brief/result files, scratch artifact API/UI visibility, recent smoke task recovery after reload, smoke result fallback recording from provider output, real Local Ollama Worker smoke execution routed to QA, smoke QA evidence gating and done closure, UI evidence status/qa_pass disabling, local MVP acceptance checker, execution-start preflight switching/blocking for limited Guild runtimes, same-role fallback routing, automatic recovery after cooldown expiry, public-safe OAuth env configuration, GitHub repo publication, README quick start, Guild-aware task route decisions wired into run completion and QA review outcomes, Guild task route UI controls and task log visibility, P&L income calculation, API provider streaming usage parsing, Ollama auto-configuration, Guild runtime binding selection, real Local Ollama runtime bootstrap, and direct-chat token usage capture.
 
 ## Known Notes
 
@@ -217,11 +220,11 @@ Latest fork test result:
 
 Next code step inside `worktrees/guild-ai-claw-fork`:
 
-1. Restart the fork runtime so the prepaid credit, pricing, briefing, and smoke endpoint/UI actions are live.
-2. Run the staged safe scratch task smoke from the task board when ready, then inspect task logs/artifacts.
-3. Run a real scratch task through Worker -> QA -> pass/fail lifecycle and inspect logs/artifacts.
-4. Connect real sales/service income events into `POST /api/guild-ai/accounting/revenue`.
-5. Split the growing `GuildAiPanel` into smaller components once the next accounting and governance workflows settle.
+1. Push the local MVP completion commits to `origin/main`.
+2. Keep the fork runtime running locally and use `npm run guild:mvp-check` as the acceptance gate after changes.
+3. Connect real sales/service income events into `POST /api/guild-ai/accounting/revenue`.
+4. Split the growing `GuildAiPanel` into smaller components once the MVP workflows settle.
+5. Move from local-first MVP to LAN/autostart hardening without exposing dev servers directly to the internet.
 
 Speed rule:
 

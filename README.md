@@ -83,6 +83,15 @@ Use the Guild AI panel actions in this order:
 2. `Run smoke`
 3. `Stage task smoke`
 4. `Run staged smoke`
+5. `Load latest smoke`, `Refresh artifacts`, then approve with `qa_pass` after evidence is ready
+
+Verify the local-first MVP against the running server:
+
+```bash
+npm run guild:mvp-check
+```
+
+The checker expects the local API at `http://127.0.0.1:8790` by default. Override with `GUILD_AI_BASE_URL` or `GUILD_AI_GUILD_ID` if needed.
 
 OAuth app credentials are not embedded in this public fork. Set these only when needed:
 

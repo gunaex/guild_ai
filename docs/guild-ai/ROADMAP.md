@@ -70,7 +70,7 @@ AI can propose upgrades, experiments, and learning advice. Humans approve level 
 
 ## Phase 2 - Queue Engine
 
-Status: partially inherited from Claw-Empire; Guild-specific task control is next.
+Status: local-first MVP accepted; LAN/autostart hardening is next.
 
 Prerequisite:
 
@@ -102,7 +102,10 @@ bash scripts/bootstrap-claw-fork.sh ../guild-ai-claw-fork
 - Runtime smoke, task smoke, and Guild route decisions prefer available bindings over known-limited bindings.
 - Real task execution preflights Guild runtime availability before marking a task in progress or creating a worktree; limited assigned runtimes switch to an available same-role runtime, and fully blocked roles stay pending.
 - Guild AI panel shows recent AI limit events for cost control and model evaluation.
-- Run and inspect a real scratch task through Worker -> QA -> Worker retry under Guild governance.
+- Run and inspect a real scratch task through Worker -> QA under Guild governance.
+- Local MVP acceptance command: `npm run guild:mvp-check`.
+- Latest local acceptance passed 10/10 gates against the running fork server.
+- `qa_pass` for Guild smoke tasks is gated on completed `SMOKE_RESULT.md` evidence.
 - Escalate repeated failure to Tech Lead and PM with accounting/governance evidence.
 
 ## Phase 3 - HR Governance
