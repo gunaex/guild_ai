@@ -6,17 +6,17 @@ Last updated: 2026-06-04
 
 Current estimate:
 
-- Full Guild AI vision: 63%
-- Local-first MVP: 92%
+- Full Guild AI vision: 64%
+- Local-first MVP: 93%
 
 Basis:
 
 - Foundation/scaffold: 96%
 - Claw-Empire fork integration: 75%
 - Guild schema/template/accounting: 88%
-- Self-improvement governance: 64%
+- Self-improvement governance: 66%
 - Local Ollama/runtime binding: 75%
-- Real task execution under Guild control: 78%
+- Real task execution under Guild control: 80%
 - HR governance: 20%
 - Memory L2/L3 and external tools: 20%
 - LAN/internet hardened deployment: 30%
@@ -125,6 +125,7 @@ This local repo currently contains a clean Guild AI scaffold, not the upstream f
 - Published the Guild AI fork snapshot to `https://github.com/gunaex/guild_ai.git` on `main`.
 - Removed embedded upstream OAuth app credentials from `server/oauth/helpers.ts`; GitHub and Google OAuth app credentials must now be supplied through environment variables.
 - Added a root README Guild AI fork section and quick start so new users can clone, build, start the server, bootstrap Ollama, and run the guarded smoke workflow without digging through handover notes.
+- Added SGM readiness checklist data and UI cards for runtime bindings, AI limits, scratch smoke, accounting, and governance so the Guild AI panel shows what is ready versus what needs action.
 
 ## Verified
 
@@ -187,7 +188,7 @@ Latest fork test result:
 - Build: `npm run build` passed.
 - Public repo publish: `origin/main` points at `84586ee feat: publish Guild AI fork snapshot`; local docs/README follow-up commits are ready to push.
 - Browser smoke: Guild AI panel visible, Thai accounting chart rendered, sample token spend produced a journal entry, upgrade proposal creation worked, proposal event history rendered, and SGM Advisor advice creation worked.
-- Latest code verification also covered service revenue journal entries, prepaid AI credit top-ups, prepaid credit balance reduction from token usage, API provider prepaid/fallback payment selection, AI provider/model limit event capture, active-limit pause behavior, runtime binding availability display, SGM runtime readiness metrics, available-binding selection for smoke and route decisions, guarded staged-smoke execution from the Guild AI panel, scratch smoke brief/result files, execution-start preflight switching/blocking for limited Guild runtimes, same-role fallback routing, automatic recovery after cooldown expiry, public-safe OAuth env configuration, GitHub repo publication, README quick start, Guild-aware task route decisions wired into run completion and QA review outcomes, Guild task route UI controls and task log visibility, P&L income calculation, API provider streaming usage parsing, Ollama auto-configuration, Guild runtime binding selection, real Local Ollama runtime bootstrap, and direct-chat token usage capture.
+- Latest code verification also covered service revenue journal entries, prepaid AI credit top-ups, prepaid credit balance reduction from token usage, API provider prepaid/fallback payment selection, AI provider/model limit event capture, active-limit pause behavior, runtime binding availability display, SGM runtime readiness metrics and readiness checklist, available-binding selection for smoke and route decisions, guarded staged-smoke execution from the Guild AI panel, scratch smoke brief/result files, execution-start preflight switching/blocking for limited Guild runtimes, same-role fallback routing, automatic recovery after cooldown expiry, public-safe OAuth env configuration, GitHub repo publication, README quick start, Guild-aware task route decisions wired into run completion and QA review outcomes, Guild task route UI controls and task log visibility, P&L income calculation, API provider streaming usage parsing, Ollama auto-configuration, Guild runtime binding selection, real Local Ollama runtime bootstrap, and direct-chat token usage capture.
 
 ## Known Notes
 

@@ -126,6 +126,8 @@ function formatDate(ms: number | null): string {
 }
 
 function statusClass(status: string): string {
+  if (status === "ready") return "border-emerald-400/40 text-emerald-200";
+  if (status === "watch" || status === "action_needed") return "border-amber-400/40 text-amber-200";
   if (status === "approved" || status === "applied" || status === "completed") return "border-emerald-400/40 text-emerald-200";
   if (status === "sandbox" || status === "needs_info" || status === "deferred") return "border-amber-400/40 text-amber-200";
   if (status === "rejected" || status === "cancelled" || status === "dismissed") return "border-rose-400/40 text-rose-200";
@@ -696,6 +698,19 @@ export default function GuildAiPanel() {
                   {bullet}
                 </div>
               ))}
+              <div className="grid gap-2 pt-2 md:grid-cols-2">
+                {state.briefing.readiness.map((item) => (
+                  <div key={item.key} className="rounded-md border border-slate-800 bg-slate-900/50 px-3 py-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium uppercase tracking-wide text-slate-400">{item.label}</span>
+                      <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(item.status)}`}>
+                        {item.status}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-xs text-slate-300">{item.detail}</div>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="space-y-2">
               {state.briefing.nextActions.map((action) => (

@@ -124,7 +124,7 @@ The Guild AI panel can stage a Worker task smoke and exercise route decisions di
 API-provider model limits are now governed per provider/model. When an API provider returns 429/rate-limit, quota, billing, or credit exhaustion errors, Guild AI records a row in `guild_ai_limit_events` with retry/active-until metadata. Active limited provider/model pairs are paused before repeat calls, while other providers/models can continue. If a same-role runtime binding is available and not limited, the task is reassigned to that backup agent/provider/model and continues. When the cooldown expires, the row is marked with `recovered_at` and that provider/model becomes callable again automatically. Recent events are available at `GET /api/guild-ai/limits/:guildId` and in the Guild AI panel. Runtime binding rows now also include `availability_status` and `active_limit`, so the Guild AI panel can show available/limited/disabled status before a run starts. Runtime smoke, task smoke, and Guild route decisions now prefer available bindings over known-limited bindings. Real task execution also preflights Guild runtime availability before marking a task in progress or creating a worktree; limited assigned runtimes switch to an available same-role runtime, and fully blocked roles stay pending. SGM briefing metrics now include runtime available/limited counts and blocked-role detection.
 GitHub push protection blocked the upstream embedded Google OAuth credentials, so the public Guild AI fork removed embedded OAuth app credentials from `server/oauth/helpers.ts`. Configure OAuth integrations with `OAUTH_GITHUB_CLIENT_ID`, `OAUTH_GOOGLE_CLIENT_ID`, and `OAUTH_GOOGLE_CLIENT_SECRET` when needed.
 The visual layer now has a renderer-ready manifest contract at `GET /api/guild-ai/visual/:guildId/manifest`. The Guild AI panel shows a visual manifest preview with scene mood, actors, accounting state, governance state, and task state. This keeps the future office/cartoon renderer path alive while MVP work continues.
-SGM briefing now exists at `GET /api/guild-ai/briefing/:guildId` and in the Guild AI panel. It summarizes headline status, operating bullets, and next actions from runtime bindings, P&L, pending upgrades, advice, and task state.
+SGM briefing now exists at `GET /api/guild-ai/briefing/:guildId` and in the Guild AI panel. It summarizes headline status, operating bullets, next actions, and a readiness checklist for runtime bindings, AI limits, scratch smoke, accounting, and governance.
 
 ## New Strategic Modules
 
@@ -156,6 +156,7 @@ Guild AI now has a governance direction:
 - public-safe OAuth env configuration and GitHub repo publication.
 - visual manifest API and panel preview for the future office renderer.
 - SGM briefing API and panel section.
+- SGM readiness checklist cards for immediate operating readiness.
 
 Important docs:
 

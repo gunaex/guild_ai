@@ -56,6 +56,13 @@ describe("Guild AI SGM briefing", () => {
       expect(briefing.metrics).toMatchObject({ actors: 1, pendingUpgrades: 1, runtimeAvailable: 1, runtimeLimited: 0 });
       expect(briefing.bullets.some((bullet) => bullet.includes("Runtime readiness: 1 available"))).toBe(true);
       expect(briefing.bullets.some((bullet) => bullet.includes("Approve safer task smoke"))).toBe(true);
+      expect(briefing.readiness).toContainEqual({
+        key: "runtime",
+        label: "Runtime bindings",
+        status: "ready",
+        detail: "1 runtime binding available.",
+      });
+      expect(briefing.readiness.find((item) => item.key === "governance")?.status).toBe("action_needed");
       expect(briefing.nextActions).toContainEqual({
         key: "review_upgrades",
         label: "Review pending upgrade proposals",
@@ -83,6 +90,11 @@ describe("Guild AI SGM briefing", () => {
       expect(briefing.bullets.some((bullet) => bullet.includes("Blocked roles without available runtime: techLead"))).toBe(
         true,
       );
+      expect(briefing.readiness.find((item) => item.key === "runtime")).toMatchObject({
+        status: "action_needed",
+        detail: "Blocked role: techLead.",
+      });
+      expect(briefing.readiness.find((item) => item.key === "limits")?.status).toBe("watch");
       expect(briefing.nextActions).toContainEqual({
         key: "restore_runtime",
         label: "Restore runtime availability for blocked roles",

@@ -35,6 +35,12 @@ export type GuildAiSgmBriefing = {
     label: string;
     priority: "low" | "medium" | "high";
   }>;
+  readiness: Array<{
+    key: "runtime" | "limits" | "smoke" | "accounting" | "governance";
+    label: string;
+    status: "ready" | "action_needed" | "watch";
+    detail: string;
+  }>;
   metrics: {
     actors: number;
     pendingUpgrades: number;

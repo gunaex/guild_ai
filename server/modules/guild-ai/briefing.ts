@@ -15,6 +15,12 @@ export type GuildSgmBriefing = {
     label: string;
     priority: "low" | "medium" | "high";
   }>;
+  readiness: Array<{
+    key: "runtime" | "limits" | "smoke" | "accounting" | "governance";
+    label: string;
+    status: "ready" | "action_needed" | "watch";
+    detail: string;
+  }>;
   metrics: {
     actors: number;
     pendingUpgrades: number;
@@ -60,6 +66,14 @@ export function buildGuildSgmBriefing(db: DbLike, guildId: string, generatedAt: 
        LIMIT 1`,
     )
     .get(guildId) as { description: string } | undefined;
+  const smokeTaskCount = db
+    .prepare(
+      `SELECT COUNT(*) AS count
+       FROM tasks
+       WHERE workflow_meta_json LIKE ?
+         AND workflow_meta_json LIKE '%"smoke":true%'`,
+    )
+    .get(`%"guildId":"${guildId}"%`) as { count: number } | undefined;
 
   const status =
     manifest.actors.length === 0
@@ -103,6 +117,53 @@ export function buildGuildSgmBriefing(db: DbLike, guildId: string, generatedAt: 
     nextActions.push({ key: "continue_operations", label: "Continue local operations and gather more evidence", priority: "low" });
   }
 
+  const readiness: GuildSgmBriefing["readiness"] = [
+    {
+      key: "runtime",
+      label: "Runtime bindings",
+      status: runtimeAvailable > 0 && blockedRoles.length === 0 ? "ready" : "action_needed",
+      detail:
+        runtimeAvailable > 0 && blockedRoles.length === 0
+          ? `${runtimeAvailable} runtime binding${runtimeAvailable === 1 ? "" : "s"} available.`
+          : blockedRoles.length > 0
+            ? `Blocked role${blockedRoles.length === 1 ? "" : "s"}: ${blockedRoles.join(", ")}.`
+            : "Bootstrap Local Ollama runtime before running Guild tasks.",
+    },
+    {
+      key: "limits",
+      label: "AI limits",
+      status: runtimeLimited > 0 ? "watch" : "ready",
+      detail:
+        runtimeLimited > 0
+          ? `${runtimeLimited} provider/model binding${runtimeLimited === 1 ? "" : "s"} currently limited.`
+          : "No active provider/model limits blocking this guild.",
+    },
+    {
+      key: "smoke",
+      label: "Scratch smoke",
+      status: (smokeTaskCount?.count ?? 0) > 0 ? "ready" : "action_needed",
+      detail:
+        (smokeTaskCount?.count ?? 0) > 0
+          ? `${smokeTaskCount?.count ?? 0} Guild smoke task${(smokeTaskCount?.count ?? 0) === 1 ? "" : "s"} staged or recorded.`
+          : "Stage and run a scratch smoke task to validate the local loop.",
+    },
+    {
+      key: "accounting",
+      label: "Accounting",
+      status: latestJournal ? "ready" : "watch",
+      detail: latestJournal ? `Latest journal: ${latestJournal.description}.` : "Record sample revenue, credit, or token usage to seed accounting evidence.",
+    },
+    {
+      key: "governance",
+      label: "Governance",
+      status: manifest.governance.pendingUpgrades > 0 ? "action_needed" : "ready",
+      detail:
+        manifest.governance.pendingUpgrades > 0
+          ? `${manifest.governance.pendingUpgrades} upgrade proposal${manifest.governance.pendingUpgrades === 1 ? "" : "s"} awaiting decision.`
+          : "No pending upgrade decision blocking operations.",
+    },
+  ];
+
   const headline =
     status === "warming_up"
       ? "Guild runtime is not bound yet."
@@ -119,6 +180,7 @@ export function buildGuildSgmBriefing(db: DbLike, guildId: string, generatedAt: 
     status,
     bullets,
     nextActions,
+    readiness,
     metrics: {
       actors: manifest.actors.length,
       pendingUpgrades: manifest.governance.pendingUpgrades,
