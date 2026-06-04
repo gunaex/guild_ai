@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import {
   discoverVideoArtifact,
@@ -63,6 +64,70 @@ export function createRunCompleteHandler(deps: CreateRunCompleteHandlerDeps) {
       return guildId || null;
     } catch {
       return null;
+    }
+  }
+
+  function readGuildSmokeMeta(raw: string | null | undefined): { guildId: string; roleKey: string } | null {
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+      const meta = parsed as Record<string, unknown>;
+      const guildId = String(meta.guildId ?? "").trim();
+      const roleKey = String(meta.currentGuildRole ?? meta.roleKey ?? "").trim();
+      return guildId && meta.smoke === true ? { guildId, roleKey: roleKey || "unknown" } : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeGuildSmokeResultArtifact(input: {
+    taskId: string;
+    taskTitle: string;
+    workflowMetaJson: string | null | undefined;
+    projectPath: string | null | undefined;
+    worktreePath: string | null | undefined;
+    result: string | null;
+  }): void {
+    const meta = readGuildSmokeMeta(input.workflowMetaJson);
+    if (!meta) return;
+
+    const tmp = path.resolve(os.tmpdir());
+    const candidates = [input.projectPath, input.worktreePath]
+      .map((raw) => (raw ? path.resolve(raw) : ""))
+      .filter((resolved) => resolved && (resolved === tmp || resolved.startsWith(`${tmp}${path.sep}`)));
+    if (candidates.length === 0) return;
+
+    const output = (input.result ?? "").trim() || "RUN completed without provider output.";
+    const content = [
+      "# Smoke Result",
+      "",
+      "Status: completed",
+      `Guild: ${meta.guildId}`,
+      `Role: ${meta.roleKey}`,
+      `Task: ${input.taskTitle}`,
+      `Completed at: ${new Date(nowMs()).toISOString()}`,
+      "",
+      "## Provider Output",
+      "",
+      output,
+      "",
+    ].join("\n");
+
+    let written = 0;
+    for (const dir of candidates) {
+      const resultPath = path.join(dir, "SMOKE_RESULT.md");
+      try {
+        const existing = fs.existsSync(resultPath) ? fs.readFileSync(resultPath, "utf8") : "";
+        if (existing.trim() && !existing.includes("Pending agent execution.")) continue;
+        fs.writeFileSync(resultPath, content, "utf8");
+        written += 1;
+      } catch (err) {
+        appendTaskLog(input.taskId, "system", `Guild AI smoke artifact write skipped: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+    if (written > 0) {
+      appendTaskLog(input.taskId, "system", `Guild AI smoke artifact recorded from provider output (${written} file${written === 1 ? "" : "s"}).`);
     }
   }
 
@@ -266,6 +331,18 @@ export function createRunCompleteHandler(deps: CreateRunCompleteHandlerDeps) {
           `Video render engine gate passed: Remotion evidence detected (${remotionGate.remotionEvidenceTaskIds.join(", ")})`,
         );
       }
+    }
+
+    if (finalExitCode === 0 && task) {
+      const wtInfo = taskWorktrees.get(taskId) as { worktreePath?: string; projectPath?: string } | undefined;
+      writeGuildSmokeResultArtifact({
+        taskId,
+        taskTitle: task.title,
+        workflowMetaJson: task.workflow_meta_json,
+        projectPath: task.project_path,
+        worktreePath: wtInfo?.worktreePath ?? null,
+        result,
+      });
     }
 
     const logKind = finalExitCode === 0 ? "completed" : "failed";
