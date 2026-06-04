@@ -11,6 +11,7 @@ function createDb(): DatabaseSync {
       status TEXT NOT NULL,
       assigned_agent_id TEXT,
       workflow_meta_json TEXT,
+      project_path TEXT,
       updated_at INTEGER DEFAULT 0
     );
 

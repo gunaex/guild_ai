@@ -7,7 +7,7 @@ Last updated: 2026-06-04
 Current estimate:
 
 - Full Guild AI vision: 66%
-- Local-first MVP: 96%
+- Local-first MVP: 97%
 
 Basis:
 
@@ -16,7 +16,7 @@ Basis:
 - Guild schema/template/accounting: 88%
 - Self-improvement governance: 66%
 - Local Ollama/runtime binding: 80%
-- Real task execution under Guild control: 85%
+- Real task execution under Guild control: 87%
 - HR governance: 20%
 - Memory L2/L3 and external tools: 20%
 - LAN/internet hardened deployment: 30%
@@ -130,6 +130,8 @@ This local repo currently contains a clean Guild AI scaffold, not the upstream f
 - Added Guild smoke result fallback recording: API-provider task runs that complete successfully now write provider output into `SMOKE_RESULT.md` for Guild smoke tasks, giving chat-only/local-model runners a concrete artifact even when they cannot edit files directly.
 - Verified a real Local Ollama staged Worker smoke run through Bolt: task started, worktree was created, provider completed with exit code 0, `SMOKE_RESULT.md` was recorded, and Guild lifecycle routed the task to QA/Hawk review.
 - Added recent Guild smoke task recovery via `GET /api/guild-ai/runtime/:guildId/task-smokes` and a `Load latest smoke` panel action so logs/artifacts can be restored after a reload or browser/account switch.
+- Added a smoke QA evidence gate: `qa_pass` now requires a completed `SMOKE_RESULT.md` artifact for Guild smoke tasks, preventing approval when evidence is still pending.
+- Verified the latest real Local Ollama smoke task could close through `qa_pass` only after `SMOKE_RESULT.md` was recorded, moving `cb05c80b...` from QA review to done.
 
 ## Verified
 
@@ -191,12 +193,12 @@ Verified fork routes:
 
 Latest fork test result:
 
-- API: 62 test files passed, 253 tests passed.
+- API: 62 test files passed, 254 tests passed.
 - Web: 25 test files passed, 76 tests passed.
 - Build: `npm run build` passed.
 - Public repo publish: `origin/main` points at `84586ee feat: publish Guild AI fork snapshot`; local docs/README follow-up commits are ready to push.
 - Browser smoke: Guild AI panel visible, Thai accounting chart rendered, sample token spend produced a journal entry, upgrade proposal creation worked, proposal event history rendered, and SGM Advisor advice creation worked.
-- Latest code verification also covered service revenue journal entries, prepaid AI credit top-ups, prepaid credit balance reduction from token usage, API provider prepaid/fallback payment selection, AI provider/model limit event capture, active-limit pause behavior, runtime binding availability display, SGM runtime readiness metrics and readiness checklist, available-binding selection for smoke and route decisions, guarded staged-smoke execution from the Guild AI panel, scratch smoke brief/result files, scratch artifact API/UI visibility, recent smoke task recovery after reload, smoke result fallback recording from provider output, real Local Ollama Worker smoke execution routed to QA, execution-start preflight switching/blocking for limited Guild runtimes, same-role fallback routing, automatic recovery after cooldown expiry, public-safe OAuth env configuration, GitHub repo publication, README quick start, Guild-aware task route decisions wired into run completion and QA review outcomes, Guild task route UI controls and task log visibility, P&L income calculation, API provider streaming usage parsing, Ollama auto-configuration, Guild runtime binding selection, real Local Ollama runtime bootstrap, and direct-chat token usage capture.
+- Latest code verification also covered service revenue journal entries, prepaid AI credit top-ups, prepaid credit balance reduction from token usage, API provider prepaid/fallback payment selection, AI provider/model limit event capture, active-limit pause behavior, runtime binding availability display, SGM runtime readiness metrics and readiness checklist, available-binding selection for smoke and route decisions, guarded staged-smoke execution from the Guild AI panel, scratch smoke brief/result files, scratch artifact API/UI visibility, recent smoke task recovery after reload, smoke result fallback recording from provider output, real Local Ollama Worker smoke execution routed to QA, smoke QA evidence gating and done closure, execution-start preflight switching/blocking for limited Guild runtimes, same-role fallback routing, automatic recovery after cooldown expiry, public-safe OAuth env configuration, GitHub repo publication, README quick start, Guild-aware task route decisions wired into run completion and QA review outcomes, Guild task route UI controls and task log visibility, P&L income calculation, API provider streaming usage parsing, Ollama auto-configuration, Guild runtime binding selection, real Local Ollama runtime bootstrap, and direct-chat token usage capture.
 
 ## Known Notes
 

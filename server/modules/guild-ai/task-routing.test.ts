@@ -1,4 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { applyBaseSchema } from "../bootstrap/schema/base-schema.ts";
 import { applyGuildAiSchema } from "../bootstrap/schema/guild-ai-schema.ts";
@@ -196,6 +199,47 @@ describe("Guild AI task routing", () => {
         decision: "qa_pass",
         now: 3,
       });
+      expect(done).toMatchObject({
+        status: "done",
+        assignedAgentId: null,
+        assignedRole: null,
+      });
+    } finally {
+      db.close();
+    }
+  });
+
+  it("requires completed smoke evidence before a smoke QA pass can close the task", () => {
+    const db = new DatabaseSync(":memory:");
+    const now = Date.UTC(2026, 0, 2);
+    const projectPath = path.join(os.tmpdir(), "guild-ai-routing-smoke-test");
+    try {
+      seedRoutingHarness(db, now);
+      fs.mkdirSync(projectPath, { recursive: true });
+      fs.writeFileSync(path.join(projectPath, "SMOKE_RESULT.md"), "# Smoke Result\n\nPending agent execution.\n", "utf8");
+      db.prepare("UPDATE tasks SET status = 'review', workflow_meta_json = ?, project_path = ? WHERE id = ?").run(
+        JSON.stringify({ guildId: "ecom-001", roleKey: "worker", smoke: true, currentGuildRole: "qa" }),
+        projectPath,
+        "task-1",
+      );
+
+      expect(() =>
+        applyGuildTaskRouteDecision(db, {
+          guildId: "ecom-001",
+          taskId: "task-1",
+          decision: "qa_pass",
+          now: now + 1,
+        }),
+      ).toThrow("completed SMOKE_RESULT.md");
+
+      fs.writeFileSync(path.join(projectPath, "SMOKE_RESULT.md"), "# Smoke Result\n\nStatus: completed\n", "utf8");
+      const done = applyGuildTaskRouteDecision(db, {
+        guildId: "ecom-001",
+        taskId: "task-1",
+        decision: "qa_pass",
+        now: now + 2,
+      });
+
       expect(done).toMatchObject({
         status: "done",
         assignedAgentId: null,

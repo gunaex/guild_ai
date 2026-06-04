@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { selectGuildRuntimeBindingForRole } from "./runtime-bindings.ts";
 
@@ -25,6 +28,7 @@ type TaskRow = {
   title: string;
   status: string;
   workflow_meta_json: string | null;
+  project_path: string | null;
 };
 
 function parseMeta(raw: string | null): Record<string, unknown> {
@@ -55,6 +59,20 @@ function appendTaskLog(db: DbLike, taskId: string, message: string, now: number)
   );
 }
 
+function hasCompletedSmokeResult(task: TaskRow): boolean {
+  const meta = parseMeta(task.workflow_meta_json);
+  if (meta.smoke !== true) return true;
+
+  const projectPath = task.project_path ? path.resolve(task.project_path) : "";
+  const tmp = path.resolve(os.tmpdir());
+  if (!projectPath || (projectPath !== tmp && !projectPath.startsWith(`${tmp}${path.sep}`))) return false;
+
+  const resultPath = path.join(projectPath, "SMOKE_RESULT.md");
+  if (!fs.existsSync(resultPath)) return false;
+  const content = fs.readFileSync(resultPath, "utf8").trim();
+  return Boolean(content) && !content.includes("Pending agent execution.");
+}
+
 export function applyGuildTaskRouteDecision(
   db: DbLike,
   input: {
@@ -71,7 +89,7 @@ export function applyGuildTaskRouteDecision(
   if (!guildId || !taskId) throw new Error("guildId and taskId are required.");
 
   const task = db
-    .prepare("SELECT id, title, status, workflow_meta_json FROM tasks WHERE id = ?")
+    .prepare("SELECT id, title, status, workflow_meta_json, project_path FROM tasks WHERE id = ?")
     .get(taskId) as TaskRow | undefined;
   if (!task) throw new Error("Task not found.");
 
@@ -89,6 +107,9 @@ export function applyGuildTaskRouteDecision(
     nextStatus = "review";
     nextRole = "qa";
   } else if (input.decision === "qa_pass") {
+    if (!hasCompletedSmokeResult(task)) {
+      throw new Error("Guild AI smoke QA pass requires a completed SMOKE_RESULT.md artifact.");
+    }
     nextStatus = "done";
     nextRole = null;
   } else if (input.decision === "qa_fail") {
