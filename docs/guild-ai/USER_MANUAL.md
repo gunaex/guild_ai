@@ -510,16 +510,58 @@ Refresh artifacts
 2. เปิด `npm run dev:local`
 3. เข้า UI เมนู `Guild AI`
 4. อ่าน SGM briefing
-5. ตรวจ runtime bindings
-6. ตรวจ model limits
-7. สั่ง smoke หรือ task ทดลอง
-8. ตรวจ artifacts
-9. ให้ QA decision
-10. ตรวจ accounting
-11. รัน `npm run guild:mvp-check`
-12. commit/push เฉพาะเมื่อ checks ผ่าน
+5. กด `Generate now` ใน Daily PM report หรือรอ scheduler 08:00 Asia/Bangkok
+6. ตรวจ runtime bindings
+7. ตรวจ model limits
+8. สั่ง smoke หรือ task ทดลอง
+9. ตรวจ artifacts
+10. ให้ QA decision
+11. ตรวจ accounting
+12. รัน `npm run guild:mvp-check`
+13. รัน `npm run guild:doctor`
+14. commit/push เฉพาะเมื่อ checks ผ่าน
 
-## 15. เอกสารที่ควรอ่านคู่กัน
+## 15. Daily PM Report
+
+Daily PM report คือรายงานเช้าแบบไม่ใช้ token เพิ่ม สรุปจาก SQLite และ readiness gate:
+
+- launch readiness status/score
+- task created/done/review/in-progress ใน 24 ชั่วโมง
+- revenue, expense, net income, token cost
+- active runtime bindings
+- active model limits
+- pending governance requests
+- next actions สำหรับวันนี้
+
+Scheduler ทำงานอัตโนมัติที่ 08:00 เวลา Asia/Bangkok เมื่อ server เปิดอยู่ ถ้าต้องการปิด:
+
+```bash
+GUILD_AI_PM_REPORT_SCHEDULER=0 ./node_modules/.bin/tsx server/index.ts
+```
+
+สั่ง generate เองผ่าน UI ได้ที่ `Guild AI -> Daily PM report -> Generate now`
+
+## 16. guild:doctor
+
+ใช้เมื่อต้องการตรวจสุขภาพทั้งระบบในคำสั่งเดียว:
+
+```bash
+npm run guild:doctor
+```
+
+ตรวจหลักๆ:
+
+- server session
+- final launch readiness
+- readiness gates รายตัว
+- SGM briefing
+- active model limits
+- Daily PM report ล่าสุด
+- local Ollama model endpoint
+
+สถานะ `WATCH` คือยังไม่บล็อกการลอง local แต่ควรดูต่อ เช่น ยังไม่มี PM report หรือ Ollama endpoint ไม่ตอบ
+
+## 17. เอกสารที่ควรอ่านคู่กัน
 
 - `docs/guild-ai/TEST_PLAN.md`: แผนทดสอบแบบ checklist
 - `docs/guild-ai/ROADMAP.md`: แผนต่อไป
@@ -528,12 +570,13 @@ Refresh artifacts
 - `docs/guild-ai/AUTOSTART.md`: แนวทางเปิดอัตโนมัติ
 - `docs/guild-ai/MEMORY_STRATEGY.md`: แผน memory L2/L3
 
-## 16. Golden Rule
+## 18. Golden Rule
 
 ทุกครั้งที่ไม่แน่ใจว่าระบบยังพร้อมไหม ให้รัน:
 
 ```bash
 npm run guild:mvp-check
+npm run guild:doctor
 ```
 
-ถ้าผ่าน 10/10 แปลว่า Local-first MVP ยังอยู่ในสถานะพร้อมใช้งาน
+ถ้า MVP check ผ่าน 10/10 และ doctor ไม่มี `FAIL` แปลว่า Local-first MVP ยังอยู่ในสถานะพร้อมใช้งาน

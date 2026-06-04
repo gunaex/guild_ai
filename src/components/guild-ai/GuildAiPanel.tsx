@@ -6,6 +6,7 @@ import {
   createGuildAiUpgradeProposal,
   decideGuildAiGovernanceRequest,
   decideGuildAiUpgrade,
+  generateGuildAiPmDailyReport,
   getGuildAiAccounting,
   getGuildAiBackupReadiness,
   getGuildAiBriefing,
@@ -14,6 +15,7 @@ import {
   getGuildAiTaskArtifacts,
   getGuildAiHealth,
   getGuildAiLaunchReadiness,
+  getLatestGuildAiPmDailyReport,
   getGuildAiTaskLogs,
   getGuildAiVisualManifest,
   listGuildAiAccounts,
@@ -54,6 +56,7 @@ import {
   type GuildAiMemoryNamespace,
   type GuildAiMemoryRecord,
   type GuildAiModelPricing,
+  type GuildAiPmDailyReport,
   type GuildAiProfitAndLoss,
   type GuildAiRuntimeBinding,
   type GuildAiRuntimeSmokeResult,
@@ -88,6 +91,7 @@ type LoadState = {
   deploymentReadiness: GuildAiDeploymentReadiness | null;
   backupReadiness: GuildAiBackupReadiness | null;
   launchReadiness: GuildAiLaunchReadiness | null;
+  pmDailyReport: GuildAiPmDailyReport | null;
   briefing: GuildAiSgmBriefing | null;
   pendingUpgrades: number;
   vectorDbProvider: string;
@@ -151,6 +155,7 @@ const emptyState: LoadState = {
   deploymentReadiness: null,
   backupReadiness: null,
   launchReadiness: null,
+  pmDailyReport: null,
   briefing: null,
   pendingUpgrades: 0,
   vectorDbProvider: "none",
@@ -307,6 +312,7 @@ export default function GuildAiPanel() {
   const [pricingForm, setPricingForm] = useState<PricingFormState>(defaultPricingForm);
   const [memoryForm, setMemoryForm] = useState<MemoryFormState>(defaultMemoryForm);
   const [memoryBusy, setMemoryBusy] = useState(false);
+  const [pmReportBusy, setPmReportBusy] = useState(false);
   const [hrReviewBusy, setHrReviewBusy] = useState(false);
   const [governanceBusyRequestId, setGovernanceBusyRequestId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -334,6 +340,7 @@ export default function GuildAiPanel() {
         deploymentReadiness,
         backupReadiness,
         launchReadiness,
+        pmDailyReport,
         briefing,
       ] = await Promise.all([
         getGuildAiHealth(),
@@ -354,6 +361,7 @@ export default function GuildAiPanel() {
         getGuildAiDeploymentReadiness(guildId),
         getGuildAiBackupReadiness(guildId),
         getGuildAiLaunchReadiness(guildId),
+        getLatestGuildAiPmDailyReport(guildId),
         getGuildAiBriefing(guildId),
       ]);
       setState({
@@ -376,6 +384,7 @@ export default function GuildAiPanel() {
         deploymentReadiness: deploymentReadiness.readiness,
         backupReadiness: backupReadiness.readiness,
         launchReadiness: launchReadiness.readiness,
+        pmDailyReport: pmDailyReport.report,
         briefing: briefing.briefing,
         pendingUpgrades: health.pendingUpgrades,
         vectorDbProvider: health.vectorDbProvider,
@@ -833,6 +842,19 @@ export default function GuildAiPanel() {
     }
   };
 
+  const generatePmReport = async () => {
+    setPmReportBusy(true);
+    setError(null);
+    try {
+      const result = await generateGuildAiPmDailyReport(selectedGuildId);
+      setState((prev) => ({ ...prev, pmDailyReport: result.report }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPmReportBusy(false);
+    }
+  };
+
   return (
     <section className="space-y-4">
       <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -914,6 +936,56 @@ export default function GuildAiPanel() {
           </div>
         </section>
       )}
+
+      <section className="rounded-lg border border-sky-500/30 bg-sky-950/20">
+        <div className="flex flex-col gap-2 border-b border-sky-500/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="font-semibold text-sky-100">Daily PM report</h3>
+            <p className="mt-0.5 text-xs text-sky-100/70">
+              Scheduler runs at 08:00 Asia/Bangkok; generate now for today's trial.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={generatePmReport}
+            disabled={pmReportBusy}
+            className="rounded-md border border-sky-400/40 px-3 py-1.5 text-xs font-medium text-sky-100 transition hover:bg-sky-500/10 disabled:opacity-50"
+          >
+            {pmReportBusy ? "Generating..." : "Generate now"}
+          </button>
+        </div>
+        <div className="grid gap-4 p-4 lg:grid-cols-[280px_1fr]">
+          <div className="grid gap-2">
+            <Metric label="Report date" value={state.pmDailyReport?.reportDate ?? "-"} />
+            <Metric label="Launch score" value={state.pmDailyReport ? `${state.pmDailyReport.summary.launchScore}%` : "-"} />
+            <Metric label="Done 24h" value={state.pmDailyReport?.summary.tasks.done24h ?? 0} />
+            <Metric label="Token cost" value={`$${(state.pmDailyReport?.summary.finance.tokenCost ?? 0).toFixed(2)}`} />
+          </div>
+          <div className="rounded-lg border border-sky-500/20 bg-slate-950/70 p-3">
+            {state.pmDailyReport ? (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(state.pmDailyReport.summary.launchStatus === "blocked" ? "rejected" : state.pmDailyReport.summary.launchStatus === "needs_attention" ? "needs_info" : "completed")}`}>
+                    {state.pmDailyReport.summary.launchStatus}
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    {state.pmDailyReport.source} / {formatDate(state.pmDailyReport.generatedAt)}
+                  </span>
+                </div>
+                <div className="mt-3 grid gap-2">
+                  {state.pmDailyReport.summary.nextActions.map((action) => (
+                    <div key={action} className="rounded-md bg-slate-900 px-3 py-2 text-xs leading-5 text-slate-300">
+                      {action}
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="text-sm text-slate-400">No PM daily report yet.</div>
+            )}
+          </div>
+        </div>
+      </section>
 
       <section className="rounded-lg border border-slate-700/70 bg-slate-950/70">
         <div className="flex flex-col gap-2 border-b border-slate-700/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">

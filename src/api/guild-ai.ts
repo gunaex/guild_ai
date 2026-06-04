@@ -169,6 +169,45 @@ export type GuildAiLaunchReadiness = {
   nextActions: string[];
 };
 
+export type GuildAiPmDailyReport = {
+  id: string;
+  guildId: string;
+  reportDate: string;
+  generatedAt: number;
+  summary: {
+    guildId: string;
+    reportDate: string;
+    generatedAt: number;
+    launchStatus: "ready_for_today" | "needs_attention" | "blocked";
+    launchScore: number;
+    tasks: {
+      created24h: number;
+      done24h: number;
+      review24h: number;
+      inProgress: number;
+      blocked: number;
+    };
+    finance: {
+      revenue: number;
+      expense: number;
+      netIncome: number;
+      tokenCost: number;
+      tokens24h: number;
+    };
+    operations: {
+      activeRuntimeBindings: number;
+      activeModelLimits: number;
+      pendingGovernanceRequests: number;
+      openAdvice: number;
+      memoryRecords: number;
+    };
+    nextActions: string[];
+  };
+  markdown: string;
+  source: "scheduler" | "manual" | "doctor";
+  createdAt: number;
+};
+
 export type GuildAiHrReview = {
   id: number;
   guild_id: string;
@@ -587,6 +626,18 @@ export async function getGuildAiLaunchReadiness(
   guildId: string,
 ): Promise<{ ok: boolean; readiness: GuildAiLaunchReadiness }> {
   return request(`/api/guild-ai/launch/${encodeURIComponent(guildId)}/readiness`);
+}
+
+export async function getLatestGuildAiPmDailyReport(
+  guildId: string,
+): Promise<{ ok: boolean; guildId: string; report: GuildAiPmDailyReport | null }> {
+  return request(`/api/guild-ai/reports/${encodeURIComponent(guildId)}/daily/latest`);
+}
+
+export async function generateGuildAiPmDailyReport(
+  guildId: string,
+): Promise<{ ok: boolean; guildId: string; report: GuildAiPmDailyReport }> {
+  return post(`/api/guild-ai/reports/${encodeURIComponent(guildId)}/daily/generate`, {});
 }
 
 export async function bootstrapGuildAiOllamaRuntime(

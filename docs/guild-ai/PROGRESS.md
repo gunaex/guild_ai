@@ -141,6 +141,8 @@ This local repo currently contains a clean Guild AI scaffold, not the upstream f
 - Added Guild deployment readiness gates for local/LAN/internet operation, including host binding, auth token, allowed origins, CSRF, security audit log, dev-server exposure, and HTTPS reverse-proxy checks.
 - Added Guild backup readiness manifest for SQLite DB, WAL/SHM, logs, security audit log, and `GUILD_AI_BACKUP_DIR` setup.
 - Added final Guild launch readiness aggregation with Full Guild AI vision 100%, Local-first MVP 100%, critical local trial gates, and next actions in the Guild AI panel.
+- Added `npm run guild:doctor`, a one-command operational health check for server session, launch readiness gates, SGM briefing, active model limits, latest PM report, and local Ollama availability.
+- Added Daily PM report foundation: SQLite report table, deterministic PM summary builder, 08:00 Asia/Bangkok scheduler, latest/list/generate APIs, and Guild AI panel `Generate now` action.
 
 ## Verified
 
@@ -211,7 +213,7 @@ Verified fork routes:
 
 Latest fork test result:
 
-- API: 67 test files passed, 263 tests passed.
+- API: 68 test files passed, 266 tests passed.
 - Web: 25 test files passed, 76 tests passed.
 - Build: `npm run build` passed.
 - Local MVP acceptance: `npm run guild:mvp-check` passed, 10/10 gates.
@@ -245,9 +247,11 @@ Next code step inside `worktrees/guild-ai-claw-fork`:
 3. Connect real sales/service income events into `POST /api/guild-ai/accounting/revenue`.
 4. Start using SQLite L2 memory as the source for SGM continuity notes, then add optional Chroma L3 retrieval later.
 5. Expand HR governance from sample reviews into daily productivity scoring and replacement persona proposals.
-6. Split the growing `GuildAiPanel` into smaller components once the MVP workflows settle.
-7. For today's test, open the Guild AI panel, check Final launch readiness, then run `npm run guild:mvp-check`.
-8. After the trial, add one-command production service install/backup automation and richer visual renderer polish.
+6. Implement ChromaDB L3 RAG retrieval while keeping SQLite L2 as the local default.
+7. Add multi-guild templates beyond `ecom-001`.
+8. Split the growing `GuildAiPanel` into smaller components once the MVP workflows settle.
+9. For today's test, open the Guild AI panel, check Final launch readiness, generate the Daily PM report, then run `npm run guild:mvp-check` and `npm run guild:doctor`.
+10. After the trial, add one-command production service install/backup automation and richer visual renderer polish.
 
 Speed rule:
 

@@ -25,6 +25,11 @@ import {
 } from "../guild-ai/deployment-readiness.ts";
 import { buildGuildLaunchReadiness } from "../guild-ai/launch-readiness.ts";
 import {
+  generateGuildPmDailyReport,
+  getLatestGuildPmDailyReport,
+  listGuildPmDailyReports,
+} from "../guild-ai/pm-daily-report.ts";
+import {
   decideGuildGovernanceRequest,
   listGuildGovernanceRequests,
   listGuildHrReviews,
@@ -70,6 +75,12 @@ function asNonNegativeNumber(value: unknown, fallback = 0): number {
   return parsed;
 }
 
+function asPositiveInt(value: unknown, fallback: number, max: number): number {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) return fallback;
+  return Math.min(parsed, max);
+}
+
 function isAdviceCategory(value: string): boolean {
   return ["learning", "delegation", "finance", "strategy", "operations", "risk"].includes(value);
 }
@@ -88,6 +99,29 @@ function isGovernanceDecision(value: string): value is "approved" | "rejected" |
 
 export function registerGuildAiRoutes(ctx: RuntimeContext): void {
   const { app, db, nowMs } = ctx;
+
+  function buildLaunchReadinessForGuild(guildId: string, generatedAt: number) {
+    const deployment = buildGuildDeploymentReadiness({
+      guildId,
+      generatedAt,
+      host: HOST,
+      port: PORT,
+      apiAuthToken: API_AUTH_TOKEN,
+      allowedOrigins: ALLOWED_ORIGINS,
+      allowedOriginSuffixes: ALLOWED_ORIGIN_SUFFIXES,
+      logsDir: ctx.logsDir,
+      viteDev: Boolean(process.env.VITE_DEV),
+      internetProxyEnabled: process.env.GUILD_AI_HTTPS_PROXY === "1",
+    });
+    const backup = buildGuildBackupReadiness({
+      guildId,
+      generatedAt,
+      dbPath: ctx.dbPath,
+      logsDir: ctx.logsDir,
+      backupDir: process.env.GUILD_AI_BACKUP_DIR ?? null,
+    });
+    return buildGuildLaunchReadiness({ db, guildId, generatedAt, deployment, backup });
+  }
 
   app.get("/api/guild-ai/health", (_req, res) => {
     const templateCount = db.prepare("SELECT COUNT(*) AS count FROM guild_templates").get() as { count: number };
@@ -195,29 +229,34 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
   app.get("/api/guild-ai/launch/:guildId/readiness", (req, res) => {
     const guildId = req.params.guildId;
     const generatedAt = nowMs();
-    const deployment = buildGuildDeploymentReadiness({
-      guildId,
-      generatedAt,
-      host: HOST,
-      port: PORT,
-      apiAuthToken: API_AUTH_TOKEN,
-      allowedOrigins: ALLOWED_ORIGINS,
-      allowedOriginSuffixes: ALLOWED_ORIGIN_SUFFIXES,
-      logsDir: ctx.logsDir,
-      viteDev: Boolean(process.env.VITE_DEV),
-      internetProxyEnabled: process.env.GUILD_AI_HTTPS_PROXY === "1",
-    });
-    const backup = buildGuildBackupReadiness({
-      guildId,
-      generatedAt,
-      dbPath: ctx.dbPath,
-      logsDir: ctx.logsDir,
-      backupDir: process.env.GUILD_AI_BACKUP_DIR ?? null,
-    });
     res.json({
       ok: true,
-      readiness: buildGuildLaunchReadiness({ db, guildId, generatedAt, deployment, backup }),
+      readiness: buildLaunchReadinessForGuild(guildId, generatedAt),
     });
+  });
+
+  app.get("/api/guild-ai/reports/:guildId/daily/latest", (req, res) => {
+    const guildId = req.params.guildId;
+    res.json({ ok: true, guildId, report: getLatestGuildPmDailyReport(db, guildId) });
+  });
+
+  app.get("/api/guild-ai/reports/:guildId/daily", (req, res) => {
+    const guildId = req.params.guildId;
+    const limit = asPositiveInt(req.query.limit, 14, 60);
+    res.json({ ok: true, guildId, reports: listGuildPmDailyReports(db, guildId, limit) });
+  });
+
+  app.post("/api/guild-ai/reports/:guildId/daily/generate", (req, res) => {
+    const guildId = req.params.guildId;
+    const generatedAt = nowMs();
+    const report = generateGuildPmDailyReport({
+      db,
+      guildId,
+      generatedAt,
+      launch: buildLaunchReadinessForGuild(guildId, generatedAt),
+      source: "manual",
+    });
+    res.json({ ok: true, guildId, report });
   });
 
   app.get("/api/guild-ai/runtime/:guildId/bindings", (req, res) => {

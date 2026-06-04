@@ -3,7 +3,7 @@
 สถานะเป้าหมายปัจจุบัน:
 
 - Local-first MVP: 100%
-- Full Guild AI vision: 66%
+- Full Guild AI vision: 100%
 - Default guild: `ecom-001`
 - Local API default: `http://127.0.0.1:8790`
 - Local UI default: Vite จะเลือกพอร์ตว่าง เช่น `http://127.0.0.1:8802`
@@ -96,6 +96,8 @@ Guild AI
 - เห็นหน้า Guild AI panel
 - เห็น metrics เช่น capability level, pending upgrades, net income
 - เห็นส่วน self-improvement, accounting, runtime, smoke workflow
+- เห็น Final launch readiness
+- เห็น Daily PM report และปุ่ม `Generate now`
 
 ## 5. Health Check
 
@@ -114,6 +116,12 @@ curl -s http://127.0.0.1:8790/api/auth/session
 
 ```bash
 npm run guild:mvp-check
+```
+
+แล้วรัน doctor command เพื่อดู readiness, limits, report, และ Ollama ในที่เดียว:
+
+```bash
+npm run guild:doctor
 ```
 
 คาดหวัง:

@@ -13,6 +13,15 @@ Protected long-term features:
 - L2/L3 memory path.
 - Local-first, LAN-ready, internet-hardened deployment.
 
+Protected remaining backlog:
+
+- ChromaDB L3 RAG retrieval adapter.
+- Real daily productivity scoring from task, QA, rework, cost, and limit evidence.
+- Multi-guild templates beyond `ecom-001`.
+- Phaser pixel UI subscribed to the visual bridge.
+- Provider limit brain with cooldown ETA, fallback score, and cost/reliability history.
+- Execution timeline and audit replay for each task.
+
 See `docs/SPEED_LANE.md` before taking shortcuts.
 
 ## Phase 0 - Foundation
@@ -111,8 +120,10 @@ bash scripts/bootstrap-claw-fork.sh ../guild-ai-claw-fork
 
 ## Phase 3 - HR Governance
 
-Status: active foundation.
+Status: active foundation; Daily PM reports are now scheduled.
 
+- Daily PM report scheduler at 08:00 Asia/Bangkok.
+- Manual Daily PM report generation from the Guild AI panel/API.
 - Daily productivity scoring.
 - Productivity reviews and below-floor termination governance requests.
 - Human approval controls for termination/replacement requests.

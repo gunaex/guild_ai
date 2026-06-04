@@ -196,6 +196,18 @@ CREATE TABLE IF NOT EXISTS guild_human_advice (
   resolved_at INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS guild_pm_daily_reports (
+  id TEXT PRIMARY KEY,
+  guild_id TEXT NOT NULL,
+  report_date TEXT NOT NULL,
+  generated_at INTEGER NOT NULL,
+  summary_json TEXT NOT NULL,
+  markdown TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'scheduler' CHECK(source IN ('scheduler','manual','doctor')),
+  created_at INTEGER DEFAULT (unixepoch()*1000),
+  UNIQUE(guild_id, report_date)
+);
+
 CREATE TABLE IF NOT EXISTS guild_accounting_accounts (
   guild_id TEXT NOT NULL,
   account_code TEXT NOT NULL,
@@ -243,6 +255,7 @@ CREATE INDEX IF NOT EXISTS idx_guild_memory_records_lookup ON guild_memory_recor
 CREATE INDEX IF NOT EXISTS idx_guild_hr_reviews_agent ON guild_hr_reviews(guild_id, agent_id, review_date);
 CREATE INDEX IF NOT EXISTS idx_guild_upgrade_proposals_status ON guild_upgrade_proposals(guild_id, status, created_at);
 CREATE INDEX IF NOT EXISTS idx_guild_human_advice_status ON guild_human_advice(guild_id, status, priority);
+CREATE INDEX IF NOT EXISTS idx_guild_pm_daily_reports_guild_date ON guild_pm_daily_reports(guild_id, report_date);
 CREATE INDEX IF NOT EXISTS idx_guild_accounting_accounts_category ON guild_accounting_accounts(guild_id, category);
 CREATE INDEX IF NOT EXISTS idx_guild_accounting_journal_lines_entry ON guild_accounting_journal_lines(entry_id);
 `);

@@ -58,6 +58,7 @@ Guild AI adds a practical autonomous-organization layer:
 - Deployment readiness gates for local, LAN, and internet exposure safety.
 - Backup readiness manifest for SQLite, WAL, logs, and security audit sources.
 - Final launch readiness board that reports Full Guild AI vision and Local-first MVP progress in one place.
+- Daily PM report scheduler and `npm run guild:doctor` operational health check.
 - AI model limit governance that pauses only the limited provider/model and keeps other runtimes moving.
 - Guarded scratch task smoke workflows for Worker -> QA -> retry/escalation validation.
 
