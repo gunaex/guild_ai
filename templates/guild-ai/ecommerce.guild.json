@@ -1,0 +1,58 @@
+{
+  "guildId": "ecom-001",
+  "name": "Thai Commerce Ops",
+  "businessType": "e-commerce",
+  "currency": "THB",
+  "agents": [
+    {
+      "id": "pm-001",
+      "displayName": "พี่แพลน",
+      "role": "pm",
+      "model": "gpt-4o",
+      "budgetUsdDaily": 4
+    },
+    {
+      "id": "tech-001",
+      "displayName": "หัวหน้าช่าง",
+      "role": "techLead",
+      "model": "claude-sonnet",
+      "reportsTo": "pm-001",
+      "budgetUsdDaily": 3
+    },
+    {
+      "id": "worker-001",
+      "displayName": "น้องมาร์ค",
+      "role": "worker",
+      "model": "local/gemma-4b",
+      "reportsTo": "tech-001",
+      "schedule": "*/20 * * * *",
+      "tools": ["trend-research", "product-copywriter"],
+      "budgetUsdDaily": 1,
+      "productivityFloor": 70
+    },
+    {
+      "id": "qa-001",
+      "displayName": "พี่ตรวจ",
+      "role": "qa",
+      "model": "local/gemma-4b",
+      "reportsTo": "tech-001",
+      "budgetUsdDaily": 1
+    },
+    {
+      "id": "hr-001",
+      "displayName": "คุณ HR",
+      "role": "hr",
+      "model": "local/gemma-4b",
+      "reportsTo": "pm-001",
+      "budgetUsdDaily": 1
+    },
+    {
+      "id": "acct-001",
+      "displayName": "ฝ่ายบัญชี",
+      "role": "accounting",
+      "model": "local/gemma-4b",
+      "reportsTo": "pm-001",
+      "budgetUsdDaily": 1
+    }
+  ]
+}
