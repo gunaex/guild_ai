@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { bulkHideTasks } from "../api";
 import { useI18n } from "../i18n";
 import type { Agent, Department, SubTask, Task, WorkflowPackKey } from "../types";
@@ -36,6 +36,7 @@ interface TaskBoardProps {
   onOpenMeetingMinutes?: (taskId: string) => void;
   onMergeTask?: (id: string) => void;
   onDiscardTask?: (id: string) => void;
+  openCreateTaskSignal?: number;
 }
 
 export function TaskBoard({
@@ -55,6 +56,7 @@ export function TaskBoard({
   onOpenMeetingMinutes,
   onMergeTask,
   onDiscardTask,
+  openCreateTaskSignal,
 }: TaskBoardProps) {
   const { t } = useI18n();
   const [showCreate, setShowCreate] = useState(false);
@@ -65,6 +67,11 @@ export function TaskBoard({
   const [filterType, setFilterType] = useState("");
   const [search, setSearch] = useState("");
   const [showAllTasks, setShowAllTasks] = useState(false);
+
+  useEffect(() => {
+    if (!openCreateTaskSignal) return;
+    setShowCreate(true);
+  }, [openCreateTaskSignal]);
 
   const hiddenTaskIds = useMemo(
     () => new Set(tasks.filter((task) => task.hidden === 1).map((task) => task.id)),

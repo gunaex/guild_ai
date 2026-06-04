@@ -49,6 +49,8 @@ export default function OfficeView({
   onOpenActiveMeetingMinutes,
   customDeptThemes,
   themeHighlightTargetId,
+  onOpenTaskQueue,
+  onOpenSecretaryIntake,
   onSelectAgent,
   onSelectDepartment,
 }: OfficeViewProps) {
@@ -294,6 +296,13 @@ export default function OfficeView({
   }, []);
 
   const { cliStatus, cliUsage, cliUsageRef, refreshing, handleRefreshUsage } = useCliUsage(tasks);
+  const secretaryStats = useMemo(() => {
+    const waiting = tasks.filter((task) => task.status === "pending" || task.status === "planned").length;
+    const active = tasks.filter((task) => task.status === "in_progress").length;
+    const review = tasks.filter((task) => task.status === "review").length;
+    const unassigned = tasks.filter((task) => !task.assigned_agent_id && task.status !== "done" && task.status !== "cancelled").length;
+    return { waiting, active, review, unassigned };
+  }, [tasks]);
 
   const tickerContext = useMemo(
     () => ({
@@ -393,6 +402,60 @@ export default function OfficeView({
   return (
     <div className="w-full overflow-auto" style={{ minHeight: "100%" }}>
       <div className="relative mx-auto w-full">
+        <div className="absolute left-3 top-3 z-10 w-[min(22rem,calc(100%-1.5rem))] rounded-lg border border-white/70 bg-white/95 p-3 text-slate-950 shadow-xl backdrop-blur dark:border-slate-700 dark:bg-slate-950/90 dark:text-slate-50">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                {t({ ko: "비서실", en: "Secretary Office", ja: "秘書室", zh: "秘书办公室" })}
+              </p>
+              <h2 className="mt-0.5 text-sm font-bold">
+                {t({
+                  ko: "CEO 명령 접수",
+                  en: "CEO command intake",
+                  ja: "CEO指示受付",
+                  zh: "CEO 指令接收",
+                })}
+              </h2>
+            </div>
+            <div className="rounded-md bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200">
+              {t({ ko: "QUEUE", en: "QUEUE", ja: "QUEUE", zh: "QUEUE" })}
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-4 gap-2">
+            {[
+              { label: t({ ko: "대기", en: "Waiting", ja: "待機", zh: "等待" }), value: secretaryStats.waiting },
+              { label: t({ ko: "진행", en: "Active", ja: "進行", zh: "进行" }), value: secretaryStats.active },
+              { label: t({ ko: "검토", en: "Review", ja: "確認", zh: "审查" }), value: secretaryStats.review },
+              { label: t({ ko: "미배정", en: "Unassigned", ja: "未割当", zh: "未分配" }), value: secretaryStats.unassigned },
+            ].map((item) => (
+              <div key={item.label} className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-center dark:border-slate-800 dark:bg-slate-900">
+                <div className="text-base font-bold leading-none">{item.value}</div>
+                <div className="mt-1 truncate text-[10px] font-medium text-slate-600 dark:text-slate-300">{item.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onOpenSecretaryIntake}
+              className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!onOpenSecretaryIntake}
+            >
+              {t({ ko: "명령 전달", en: "Send order", ja: "指示を送る", zh: "发送指令" })}
+            </button>
+            <button
+              type="button"
+              onClick={onOpenTaskQueue}
+              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+              disabled={!onOpenTaskQueue}
+            >
+              {t({ ko: "업무 큐 보기", en: "Open queue", ja: "キューを開く", zh: "打开队列" })}
+            </button>
+          </div>
+        </div>
+
         <div
           ref={containerRef}
           className="mx-auto"

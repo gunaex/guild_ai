@@ -214,3 +214,4 @@ Latest result after local-first MVP acceptance:
 - Browser smoke: Guild AI panel opens from sidebar, renders Thai accounting chart, records sample token spend into journal entries, creates upgrade proposals, renders proposal event history, and creates SGM Advisor advice.
 - Real Local Ollama staged task smoke: Worker/Bolt started through the guarded run endpoint, completed through the API provider with exit code 0, recorded `SMOKE_RESULT.md`, and routed to QA/Hawk review through the Guild lifecycle.
 - Real smoke closure: after evidence was recorded, `qa_pass` moved task `cb05c80b...` from QA review to done; pending smoke evidence is now rejected by route policy.
+- Office screen now has a Secretary Office intake overlay. It shows live task queue counts and lets the CEO open the queue or hand off a new order directly into the Task Board create-task modal.

@@ -150,6 +150,7 @@ This local repo currently contains a clean Guild AI scaffold, not the upstream f
 - Added audit replay timeline API for tasks, task logs, accounting journals, model limits, HR reviews, memory, and governance requests.
 - Added visual bridge snapshot API for external Phaser/pixel renderers with sequence and recommended polling cadence.
 - Added upstream sync guard documentation and `npm run guild:upstream-impact` so future Claw-Empire upgrades are reviewed before they can impact Guild AI integrations.
+- Added Office screen Secretary Office intake overlay with live queue counts and CEO order handoff into the Task Board create-task flow.
 
 ## Verified
 

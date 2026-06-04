@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import Sidebar from "../components/Sidebar";
 import OfficeView from "../components/OfficeView";
 import Dashboard from "../components/Dashboard";
@@ -195,6 +195,12 @@ export default function AppMainLayout({
   officePackBootstrappingLabel,
   children,
 }: AppMainLayoutProps) {
+  const [openCreateTaskSignal, setOpenCreateTaskSignal] = useState(0);
+  const openSecretaryTaskIntake = useCallback(() => {
+    setOpenCreateTaskSignal((value) => value + 1);
+    setView("tasks");
+  }, [setView]);
+
   const uiLanguage =
     labels.uiLanguage === "ko" || labels.uiLanguage === "ja" || labels.uiLanguage === "zh" ? labels.uiLanguage : "en";
   const officePackKey = normalizeOfficeWorkflowPack(activeOfficeWorkflowPack);
@@ -486,6 +492,8 @@ export default function AppMainLayout({
                 onOpenActiveMeetingMinutes={onOpenActiveMeetingMinutes}
                 customDeptThemes={officePresentation.roomThemes}
                 themeHighlightTargetId={activeRoomThemeTargetId}
+                onOpenTaskQueue={() => setView("tasks")}
+                onOpenSecretaryIntake={openSecretaryTaskIntake}
                 onSelectAgent={onSelectAgent}
                 onSelectDepartment={onSelectDepartment}
               />
@@ -517,6 +525,7 @@ export default function AppMainLayout({
                 onResumeTask={onResumeTask}
                 onOpenTerminal={onOpenTerminal}
                 onOpenMeetingMinutes={onOpenMeetingMinutes}
+                openCreateTaskSignal={openCreateTaskSignal}
               />
             )}
 
