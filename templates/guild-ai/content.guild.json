@@ -1,0 +1,59 @@
+{
+  "guildId": "content-001",
+  "name": "Content Growth Studio",
+  "businessType": "content-marketing",
+  "currency": "USD",
+  "agents": [
+    {
+      "id": "ct-pm-001",
+      "displayName": "Campaign PM",
+      "role": "pm",
+      "model": "local/llama",
+      "budgetUsdDaily": 3
+    },
+    {
+      "id": "ct-tech-001",
+      "displayName": "Automation Lead",
+      "role": "techLead",
+      "model": "local/llama",
+      "reportsTo": "ct-pm-001",
+      "budgetUsdDaily": 2
+    },
+    {
+      "id": "ct-writer-001",
+      "displayName": "Content Producer",
+      "role": "worker",
+      "model": "local/llama",
+      "reportsTo": "ct-tech-001",
+      "tools": ["brief-writer", "seo-outline", "social-copy"],
+      "budgetUsdDaily": 1,
+      "productivityFloor": 70
+    },
+    {
+      "id": "ct-qa-001",
+      "displayName": "Editorial QA",
+      "role": "qa",
+      "model": "local/llama",
+      "reportsTo": "ct-tech-001",
+      "tools": ["style-check", "fact-check"],
+      "budgetUsdDaily": 1,
+      "productivityFloor": 74
+    },
+    {
+      "id": "ct-hr-001",
+      "displayName": "Creator Coach",
+      "role": "hr",
+      "model": "local/llama",
+      "reportsTo": "ct-pm-001",
+      "budgetUsdDaily": 1
+    },
+    {
+      "id": "ct-acct-001",
+      "displayName": "Growth Accountant",
+      "role": "accounting",
+      "model": "local/llama",
+      "reportsTo": "ct-pm-001",
+      "budgetUsdDaily": 1
+    }
+  ]
+}

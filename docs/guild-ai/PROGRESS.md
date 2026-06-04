@@ -13,14 +13,15 @@ Basis:
 
 - Foundation/scaffold: 100%
 - Claw-Empire fork integration: 90%
-- Guild schema/template/accounting: 95%
-- Self-improvement governance: 88%
+- Guild schema/template/accounting: 98%
+- Self-improvement governance: 92%
 - Local Ollama/runtime binding: 92%
 - Real task execution under Guild control: 95%
-- HR governance: 75%
-- Memory L2/L3 and external tools: 70%
-- LAN/internet hardened deployment: 90%
-- Dual visual layer and long-running dashboards: 65%
+- HR governance: 95%
+- Memory L2/L3 and external tools: 92%
+- LAN/internet hardened deployment: 94%
+- Dual visual layer and long-running dashboards: 90%
+- Production-grade long-term company target: 100%
 
 Rule going forward: every progress report should include both the full-vision percentage and the local-first MVP percentage.
 
@@ -143,6 +144,11 @@ This local repo currently contains a clean Guild AI scaffold, not the upstream f
 - Added final Guild launch readiness aggregation with Full Guild AI vision 100%, Local-first MVP 100%, critical local trial gates, and next actions in the Guild AI panel.
 - Added `npm run guild:doctor`, a one-command operational health check for server session, launch readiness gates, SGM briefing, active model limits, latest PM report, and local Ollama availability.
 - Added Daily PM report foundation: SQLite report table, deterministic PM summary builder, 08:00 Asia/Bangkok scheduler, latest/list/generate APIs, and Guild AI panel `Generate now` action.
+- Added real daily productivity scoring from task status, QA signals, rework signals, token cost, runtime bindings, and active model limits, with evidence JSON stored in HR reviews and below-floor governance requests.
+- Added bundled multi-guild templates: `ecom-001`, `software-001`, and `content-001`.
+- Added optional Chroma L3 memory adapter status plus RAG query endpoint with SQLite L2 fallback when Chroma is disabled or offline.
+- Added audit replay timeline API for tasks, task logs, accounting journals, model limits, HR reviews, memory, and governance requests.
+- Added visual bridge snapshot API for external Phaser/pixel renderers with sequence and recommended polling cadence.
 
 ## Verified
 
@@ -213,7 +219,7 @@ Verified fork routes:
 
 Latest fork test result:
 
-- API: 68 test files passed, 266 tests passed.
+- API: 72 test files passed, 272 tests passed.
 - Web: 25 test files passed, 76 tests passed.
 - Build: `npm run build` passed.
 - Local MVP acceptance: `npm run guild:mvp-check` passed, 10/10 gates.
@@ -244,14 +250,10 @@ Next code step inside `worktrees/guild-ai-claw-fork`:
 
 1. Push the local MVP completion commits to `origin/main`.
 2. Keep the fork runtime running locally and use `npm run guild:mvp-check` as the acceptance gate after changes.
-3. Connect real sales/service income events into `POST /api/guild-ai/accounting/revenue`.
-4. Start using SQLite L2 memory as the source for SGM continuity notes, then add optional Chroma L3 retrieval later.
-5. Expand HR governance from sample reviews into daily productivity scoring and replacement persona proposals.
-6. Implement ChromaDB L3 RAG retrieval while keeping SQLite L2 as the local default.
-7. Add multi-guild templates beyond `ecom-001`.
-8. Split the growing `GuildAiPanel` into smaller components once the MVP workflows settle.
-9. For today's test, open the Guild AI panel, check Final launch readiness, generate the Daily PM report, then run `npm run guild:mvp-check` and `npm run guild:doctor`.
-10. After the trial, add one-command production service install/backup automation and richer visual renderer polish.
+3. For today's test, open the Guild AI panel, check Final launch readiness, generate the Daily PM report, run `Score today`, then run `npm run guild:mvp-check` and `npm run guild:doctor`.
+4. Restart the fork runtime once so the new bundled `software-001` and `content-001` templates auto-seed into the live DB.
+5. For internet/LAN use, keep deployment readiness green and run dependency/security audit before exposing beyond loopback.
+6. Future polish: richer Phaser renderer, deeper Chroma embedding upsert/query, replacement persona generation, and component splitting for `GuildAiPanel`.
 
 Speed rule:
 

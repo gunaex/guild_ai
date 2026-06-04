@@ -10,6 +10,8 @@ export type GuildHrReview = {
   productivity_score: number;
   token_cost_usd: number;
   review_date: string;
+  scoring_source?: "manual" | "auto";
+  evidence_json?: string;
   created_at: number;
 };
 
@@ -47,6 +49,8 @@ export function recordGuildHrReview(
     productivityScore: number;
     tokenCostUsd?: number;
     reviewDate?: string;
+    scoringSource?: "manual" | "auto";
+    evidence?: Record<string, unknown>;
     createdAt: number;
   },
 ): { review: GuildHrReview; governanceRequest: GuildGovernanceRequest | null; productivityFloor: number } {
@@ -57,6 +61,8 @@ export function recordGuildHrReview(
   const productivityScore = clampScore(input.productivityScore);
   const tokenCostUsd = roundMoney(input.tokenCostUsd ?? 0);
   const reviewDate = input.reviewDate?.trim() || isoDate(input.createdAt);
+  const scoringSource = input.scoringSource ?? "manual";
+  const evidenceJson = JSON.stringify(input.evidence ?? {});
   const role = db
     .prepare(
       `SELECT display_name, role_key, COALESCE(productivity_floor, 60) AS productivity_floor
@@ -69,19 +75,21 @@ export function recordGuildHrReview(
   const result = db
     .prepare(
       `INSERT INTO guild_hr_reviews (
-        guild_id, agent_id, productivity_score, token_cost_usd, review_date, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?)
+        guild_id, agent_id, productivity_score, token_cost_usd, review_date, scoring_source, evidence_json, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(guild_id, agent_id, review_date)
       DO UPDATE SET
         productivity_score = excluded.productivity_score,
         token_cost_usd = excluded.token_cost_usd,
+        scoring_source = excluded.scoring_source,
+        evidence_json = excluded.evidence_json,
         created_at = excluded.created_at`,
     )
-    .run(guildId, agentId, productivityScore, tokenCostUsd, reviewDate, input.createdAt);
+    .run(guildId, agentId, productivityScore, tokenCostUsd, reviewDate, scoringSource, evidenceJson, input.createdAt);
 
   const review = db
     .prepare(
-      `SELECT id, guild_id, agent_id, productivity_score, token_cost_usd, review_date, created_at
+      `SELECT id, guild_id, agent_id, productivity_score, token_cost_usd, review_date, scoring_source, evidence_json, created_at
        FROM guild_hr_reviews
        WHERE guild_id = ? AND agent_id = ? AND review_date = ?`,
     )
@@ -133,7 +141,7 @@ export function recordGuildHrReview(
 export function listGuildHrReviews(db: DbLike, guildId: string, limit = 20): GuildHrReview[] {
   return db
     .prepare(
-      `SELECT id, guild_id, agent_id, productivity_score, token_cost_usd, review_date, created_at
+      `SELECT id, guild_id, agent_id, productivity_score, token_cost_usd, review_date, scoring_source, evidence_json, created_at
        FROM guild_hr_reviews
        WHERE guild_id = ?
        ORDER BY review_date DESC, created_at DESC

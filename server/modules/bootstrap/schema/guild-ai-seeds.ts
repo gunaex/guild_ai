@@ -9,29 +9,37 @@ type DbLike = Pick<DatabaseSync, "prepare">;
 
 const SERVER_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SERVER_DIR, "..", "..", "..", "..");
-const DEFAULT_TEMPLATE_PATH = path.join(REPO_ROOT, "templates", "guild-ai", "ecommerce.guild.json");
+const DEFAULT_TEMPLATE_DIR = path.join(REPO_ROOT, "templates", "guild-ai");
 
 export function seedGuildAiTemplates(db: DbLike, nowMs: () => number): void {
-  if (!fs.existsSync(DEFAULT_TEMPLATE_PATH)) return;
+  if (!fs.existsSync(DEFAULT_TEMPLATE_DIR)) return;
 
-  const existing = db.prepare("SELECT 1 FROM guild_templates WHERE guild_id = ? LIMIT 1").get("ecom-001") as
-    | { 1: number }
-    | undefined;
-  if (existing) {
-    seedStarterChartOfAccounts(db, "ecom-001");
-    return;
+  const files = fs
+    .readdirSync(DEFAULT_TEMPLATE_DIR)
+    .filter((file) => file.endsWith(".guild.json"))
+    .sort();
+
+  for (const file of files) {
+    const templatePath = path.join(DEFAULT_TEMPLATE_DIR, file);
+    const raw = fs.readFileSync(templatePath, "utf8");
+    const parsed = JSON.parse(raw) as unknown;
+    const validation = validateGuildTemplate(parsed);
+    if (!validation.ok) {
+      console.warn(`[Guild AI] Skipped template seed ${file}: ${validation.error}`);
+      continue;
+    }
+
+    const existing = db.prepare("SELECT 1 FROM guild_templates WHERE guild_id = ? LIMIT 1").get(validation.template.guildId) as
+      | { 1: number }
+      | undefined;
+    if (existing) {
+      seedStarterChartOfAccounts(db, validation.template.guildId);
+      continue;
+    }
+
+    insertGuildTemplate(db, validation.template, nowMs());
+    console.log(`[Guild AI] Seeded guild template: ${validation.template.guildId}`);
   }
-
-  const raw = fs.readFileSync(DEFAULT_TEMPLATE_PATH, "utf8");
-  const parsed = JSON.parse(raw) as unknown;
-  const validation = validateGuildTemplate(parsed);
-  if (!validation.ok) {
-    console.warn(`[Guild AI] Skipped default template seed: ${validation.error}`);
-    return;
-  }
-
-  insertGuildTemplate(db, validation.template, nowMs());
-  console.log("[Guild AI] Seeded default guild template: ecom-001");
 }
 
 export function insertGuildTemplate(db: DbLike, template: GuildTemplateInput, timestamp: number): void {

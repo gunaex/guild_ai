@@ -111,6 +111,7 @@ The full Guild AI vision is now estimated at 93% after adding backup readiness: 
 The full Guild AI vision is now estimated at 100% for the current testable target after adding final launch readiness: `GET /api/guild-ai/launch/:guildId/readiness` aggregates critical local trial gates and shows Full Guild AI vision 100% / Local-first MVP 100% in the Guild AI panel.
 Daily PM reports now exist as a low-token operating heartbeat: `GET /api/guild-ai/reports/:guildId/daily/latest`, `GET /api/guild-ai/reports/:guildId/daily`, and `POST /api/guild-ai/reports/:guildId/daily/generate`. The server scheduler generates reports at 08:00 Asia/Bangkok unless `GUILD_AI_PM_REPORT_SCHEDULER=0`.
 `npm run guild:doctor` now checks launch readiness gates, SGM briefing, active model limits, latest PM report, and local Ollama availability in one command.
+Production-grade long-term target is now implemented for the current architecture: real daily productivity scoring (`POST /api/guild-ai/hr/:guildId/score-daily`), multi-guild template seeds (`ecom-001`, `software-001`, `content-001`), optional Chroma L3 status/RAG fallback, audit replay timeline, and visual bridge snapshot for Phaser/pixel renderers.
 
 ## Current Best Next Code Change
 

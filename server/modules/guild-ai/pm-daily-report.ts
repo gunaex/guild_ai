@@ -31,6 +31,7 @@ export type GuildPmDailyReportSummary = {
     pendingGovernanceRequests: number;
     openAdvice: number;
     memoryRecords: number;
+    averageProductivityScore: number | null;
   };
   nextActions: string[];
 };
@@ -118,6 +119,7 @@ function renderMarkdown(summary: GuildPmDailyReportSummary): string {
     `- Pending governance requests: ${summary.operations.pendingGovernanceRequests}`,
     `- Open advice: ${summary.operations.openAdvice}`,
     `- Memory records: ${summary.operations.memoryRecords}`,
+    `- Average productivity score: ${summary.operations.averageProductivityScore ?? "-"}`,
     "",
     "## Next Actions",
     ...summary.nextActions.map((action) => `- ${action}`),
@@ -171,6 +173,9 @@ export function generateGuildPmDailyReport(input: {
     "SELECT COUNT(*) AS count FROM guild_governance_requests WHERE guild_id = ? AND status = 'pending'",
     guildId,
   );
+  const avgProductivityRow = db
+    .prepare("SELECT AVG(productivity_score) AS average FROM guild_hr_reviews WHERE guild_id = ? AND review_date = ?")
+    .get(guildId, reportDate) as { average: number | null } | undefined;
   const done24h = count(db, "SELECT COUNT(*) AS count FROM tasks WHERE status = 'done' AND updated_at >= ?", since);
   const inProgress = count(db, "SELECT COUNT(*) AS count FROM tasks WHERE status = 'in_progress'");
   const summary: GuildPmDailyReportSummary = {
@@ -203,6 +208,10 @@ export function generateGuildPmDailyReport(input: {
       pendingGovernanceRequests: pendingGovernance,
       openAdvice: count(db, "SELECT COUNT(*) AS count FROM guild_human_advice WHERE guild_id = ? AND status = 'open'", guildId),
       memoryRecords: count(db, "SELECT COUNT(*) AS count FROM guild_memory_records WHERE guild_id = ?", guildId),
+      averageProductivityScore:
+        avgProductivityRow?.average === null || avgProductivityRow?.average === undefined
+          ? null
+          : Math.round(Number(avgProductivityRow.average)),
     },
     nextActions: buildNextActions({
       launch,

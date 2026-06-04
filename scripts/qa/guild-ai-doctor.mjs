@@ -70,6 +70,9 @@ async function main() {
   const health = (await request("/api/guild-ai/health", { headers })).body;
   add("pass", "guild health", `${health.templates} template(s), vector=${health.vectorDbProvider}`);
 
+  const templates = (await request("/api/guild-ai/templates", { headers })).body.templates ?? [];
+  add(templates.length >= 3 ? "pass" : "watch", "multi-guild templates", `${templates.length} template(s)`);
+
   const launch = (await request(`/api/guild-ai/launch/${encodeURIComponent(guildId)}/readiness`, { headers })).body.readiness;
   add(
     launch.status === "blocked" ? "fail" : launch.status === "needs_attention" ? "watch" : "pass",
@@ -89,6 +92,12 @@ async function main() {
 
   const pmReport = (await request(`/api/guild-ai/reports/${encodeURIComponent(guildId)}/daily/latest`, { headers })).body.report;
   add(pmReport ? "pass" : "watch", "daily PM report", pmReport ? `latest ${pmReport.reportDate}` : "no report generated yet");
+
+  const vectorStatus = (await request(`/api/guild-ai/memory/${encodeURIComponent(guildId)}/vector-status`, { headers })).body.status;
+  add(vectorStatus?.ready ? "pass" : "watch", "vector memory", `${vectorStatus?.provider ?? "unknown"}: ${vectorStatus?.detail ?? "missing"}`);
+
+  const auditReplay = (await request(`/api/guild-ai/audit/${encodeURIComponent(guildId)}/replay?limit=5`, { headers })).body.replay;
+  add(auditReplay?.events?.length >= 0 ? "pass" : "watch", "audit replay", `${auditReplay?.events?.length ?? 0} recent event(s)`);
 
   const ollama = await optionalJson(`${ollamaBaseUrl.replace(/\/$/, "")}/v1/models`);
   add(ollama.ok ? "pass" : "watch", "local Ollama", ollama.ok ? `${ollama.body?.data?.length ?? 0} model(s)` : ollama.detail);

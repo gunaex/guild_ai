@@ -54,6 +54,18 @@ export type GuildAiSgmBriefing = {
   };
 };
 
+export type GuildAiAuditReplay = {
+  guildId: string;
+  generatedAt: number;
+  events: Array<{
+    ts: number;
+    source: "task" | "task_log" | "journal" | "limit" | "hr" | "memory" | "governance";
+    title: string;
+    detail: string;
+    refId: string | number | null;
+  }>;
+};
+
 export type GuildAiUpgradeProposal = {
   id: string;
   guild_id: string;
@@ -110,6 +122,15 @@ export type GuildAiMemoryRecord = {
   metadata_json: string;
   embedding_ref: string | null;
   created_at: number;
+};
+
+export type GuildAiVectorMemoryStatus = {
+  provider: "sqlite" | "chroma";
+  enabled: boolean;
+  ready: boolean;
+  endpoint: string | null;
+  collection: string;
+  detail: string;
 };
 
 export type GuildAiDeploymentReadiness = {
@@ -200,6 +221,7 @@ export type GuildAiPmDailyReport = {
       pendingGovernanceRequests: number;
       openAdvice: number;
       memoryRecords: number;
+      averageProductivityScore: number | null;
     };
     nextActions: string[];
   };
@@ -215,6 +237,8 @@ export type GuildAiHrReview = {
   productivity_score: number;
   token_cost_usd: number;
   review_date: string;
+  scoring_source?: "manual" | "auto";
+  evidence_json?: string;
   created_at: number;
 };
 
@@ -494,6 +518,17 @@ export async function getGuildAiBriefing(guildId: string): Promise<{ ok: boolean
   return request(`/api/guild-ai/briefing/${encodeURIComponent(guildId)}`);
 }
 
+export async function getGuildAiAuditReplay(
+  guildId: string,
+  input?: { since?: number; limit?: number },
+): Promise<{ ok: boolean; replay: GuildAiAuditReplay }> {
+  const params = new URLSearchParams();
+  if (input?.since) params.set("since", String(input.since));
+  if (input?.limit) params.set("limit", String(input.limit));
+  const query = params.toString();
+  return request(`/api/guild-ai/audit/${encodeURIComponent(guildId)}/replay${query ? `?${query}` : ""}`);
+}
+
 export async function listGuildAiUpgrades(
   guildId: string,
 ): Promise<{ ok: boolean; guildId: string; proposals: GuildAiUpgradeProposal[] }> {
@@ -544,6 +579,26 @@ export async function listGuildAiMemories(
   return request(`/api/guild-ai/memory/${encodeURIComponent(guildId)}${query ? `?${query}` : ""}`);
 }
 
+export async function getGuildAiVectorMemoryStatus(
+  guildId: string,
+): Promise<{ ok: boolean; guildId: string; status: GuildAiVectorMemoryStatus }> {
+  return request(`/api/guild-ai/memory/${encodeURIComponent(guildId)}/vector-status`);
+}
+
+export async function queryGuildAiRagMemory(
+  guildId: string,
+  input: { query: string; limit?: number },
+): Promise<{
+  ok: boolean;
+  guildId: string;
+  result: { provider: "sqlite" | "chroma"; query: string; records: GuildAiMemoryRecord[]; status: GuildAiVectorMemoryStatus };
+}> {
+  const limit = input.limit ?? 8;
+  return request(
+    `/api/guild-ai/memory/${encodeURIComponent(guildId)}/rag?query=${encodeURIComponent(input.query)}&limit=${encodeURIComponent(limit)}`,
+  );
+}
+
 export async function createGuildAiMemory(input: {
   guildId: string;
   namespace: GuildAiMemoryNamespace;
@@ -575,6 +630,12 @@ export async function recordGuildAiHrReview(input: {
   productivityFloor: number;
 }> {
   return post("/api/guild-ai/hr/reviews", input);
+}
+
+export async function scoreGuildAiDailyProductivity(
+  guildId: string,
+): Promise<{ ok: boolean; guildId: string; results: Array<{ review: GuildAiHrReview; productivityFloor: number }> }> {
+  return post(`/api/guild-ai/hr/${encodeURIComponent(guildId)}/score-daily`, {});
 }
 
 export async function listGuildAiGovernanceRequests(

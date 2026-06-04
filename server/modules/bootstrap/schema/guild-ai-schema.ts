@@ -127,6 +127,8 @@ CREATE TABLE IF NOT EXISTS guild_hr_reviews (
   productivity_score INTEGER NOT NULL,
   token_cost_usd REAL NOT NULL DEFAULT 0,
   review_date TEXT NOT NULL,
+  scoring_source TEXT NOT NULL DEFAULT 'manual' CHECK(scoring_source IN ('manual','auto')),
+  evidence_json TEXT NOT NULL DEFAULT '{}',
   created_at INTEGER DEFAULT (unixepoch()*1000),
   UNIQUE(guild_id, agent_id, review_date)
 );
@@ -262,6 +264,16 @@ CREATE INDEX IF NOT EXISTS idx_guild_accounting_journal_lines_entry ON guild_acc
 
   try {
     db.exec("ALTER TABLE guild_ai_limit_events ADD COLUMN recovered_at INTEGER");
+  } catch {
+    /* already exists */
+  }
+  try {
+    db.exec("ALTER TABLE guild_hr_reviews ADD COLUMN scoring_source TEXT NOT NULL DEFAULT 'manual' CHECK(scoring_source IN ('manual','auto'))");
+  } catch {
+    /* already exists */
+  }
+  try {
+    db.exec("ALTER TABLE guild_hr_reviews ADD COLUMN evidence_json TEXT NOT NULL DEFAULT '{}'");
   } catch {
     /* already exists */
   }

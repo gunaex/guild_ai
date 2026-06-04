@@ -98,6 +98,8 @@ Guild AI
 - เห็นส่วน self-improvement, accounting, runtime, smoke workflow
 - เห็น Final launch readiness
 - เห็น Daily PM report และปุ่ม `Generate now`
+- เห็น HR governance และปุ่ม `Score today`
+- เห็น L2/vector memory status
 
 ## 5. Health Check
 
@@ -123,6 +125,13 @@ npm run guild:mvp-check
 ```bash
 npm run guild:doctor
 ```
+
+คาดหวัง:
+
+- ไม่มี `FAIL`
+- เห็น multi-guild template check
+- เห็น vector memory check
+- เห็น audit replay check
 
 คาดหวัง:
 

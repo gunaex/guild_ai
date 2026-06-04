@@ -511,15 +511,16 @@ Refresh artifacts
 3. เข้า UI เมนู `Guild AI`
 4. อ่าน SGM briefing
 5. กด `Generate now` ใน Daily PM report หรือรอ scheduler 08:00 Asia/Bangkok
-6. ตรวจ runtime bindings
-7. ตรวจ model limits
-8. สั่ง smoke หรือ task ทดลอง
-9. ตรวจ artifacts
-10. ให้ QA decision
-11. ตรวจ accounting
-12. รัน `npm run guild:mvp-check`
-13. รัน `npm run guild:doctor`
-14. commit/push เฉพาะเมื่อ checks ผ่าน
+6. กด `Score today` ใน HR governance เพื่อสร้าง productivity score จาก evidence จริง
+7. ตรวจ runtime bindings
+8. ตรวจ model limits
+9. สั่ง smoke หรือ task ทดลอง
+10. ตรวจ artifacts
+11. ให้ QA decision
+12. ตรวจ accounting
+13. รัน `npm run guild:mvp-check`
+14. รัน `npm run guild:doctor`
+15. commit/push เฉพาะเมื่อ checks ผ่าน
 
 ## 15. Daily PM Report
 
@@ -557,6 +558,9 @@ npm run guild:doctor
 - SGM briefing
 - active model limits
 - Daily PM report ล่าสุด
+- multi-guild templates
+- vector memory status
+- audit replay
 - local Ollama model endpoint
 
 สถานะ `WATCH` คือยังไม่บล็อกการลอง local แต่ควรดูต่อ เช่น ยังไม่มี PM report หรือ Ollama endpoint ไม่ตอบ
@@ -580,3 +584,13 @@ npm run guild:doctor
 ```
 
 ถ้า MVP check ผ่าน 10/10 และ doctor ไม่มี `FAIL` แปลว่า Local-first MVP ยังอยู่ในสถานะพร้อมใช้งาน
+
+## 19. Production-Grade APIs
+
+API ใหม่ที่ช่วยให้ระบบเป็นบริษัท AI ระยะยาว:
+
+- `POST /api/guild-ai/hr/:guildId/score-daily`: สร้าง productivity score จาก task/QA/rework/cost/limit evidence
+- `GET /api/guild-ai/memory/:guildId/vector-status`: ตรวจ SQLite/Chroma memory status
+- `GET /api/guild-ai/memory/:guildId/rag?query=...`: RAG recall โดย fallback เป็น SQLite L2 เมื่อ Chroma ยังไม่พร้อม
+- `GET /api/guild-ai/audit/:guildId/replay`: timeline สำหรับ audit replay
+- `GET /api/guild-ai/visual/:guildId/bridge-snapshot`: snapshot สำหรับ Phaser/pixel renderer

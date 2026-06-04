@@ -13,12 +13,12 @@ Protected long-term features:
 - L2/L3 memory path.
 - Local-first, LAN-ready, internet-hardened deployment.
 
-Protected remaining backlog:
+Protected production-grade capabilities:
 
-- ChromaDB L3 RAG retrieval adapter.
+- ChromaDB L3 RAG retrieval adapter with SQLite fallback.
 - Real daily productivity scoring from task, QA, rework, cost, and limit evidence.
 - Multi-guild templates beyond `ecom-001`.
-- Phaser pixel UI subscribed to the visual bridge.
+- Phaser pixel UI subscribed to the visual bridge snapshot.
 - Provider limit brain with cooldown ETA, fallback score, and cost/reliability history.
 - Execution timeline and audit replay for each task.
 
@@ -120,11 +120,11 @@ bash scripts/bootstrap-claw-fork.sh ../guild-ai-claw-fork
 
 ## Phase 3 - HR Governance
 
-Status: active foundation; Daily PM reports are now scheduled.
+Status: production-grade foundation active; Daily PM reports and real scoring are scheduled/available.
 
 - Daily PM report scheduler at 08:00 Asia/Bangkok.
 - Manual Daily PM report generation from the Guild AI panel/API.
-- Daily productivity scoring.
+- Daily productivity scoring from task, QA, rework, cost, and model-limit evidence.
 - Productivity reviews and below-floor termination governance requests.
 - Human approval controls for termination/replacement requests.
 - Replacement agent persona generation.
@@ -132,19 +132,19 @@ Status: active foundation; Daily PM reports are now scheduled.
 
 ## Phase 4 - External Tools And Memory
 
-Status: active; SQLite L2 memory is implemented, Chroma L3 remains optional.
+Status: active; SQLite L2 memory is implemented, Chroma L3 adapter/status/RAG fallback is available and optional.
 
 - Webhook gateway for n8n/Make.
 - SQLite L2 memory records for durable operating facts, advice, decisions, and accounting context.
-- ChromaDB guild memory adapter.
+- ChromaDB guild memory adapter status plus RAG fallback endpoint.
 - Affine/AnythingLLM adapters.
 
 ## Phase 5 - Dual Visual Layer
 
-Status: contract started.
+Status: renderer bridge ready.
 
 - Renderer-ready visual manifest API.
 - Guild AI panel visual manifest preview.
-- Phaser cartoon renderer subscribed to the bridge.
+- Phaser cartoon renderer can subscribe through the visual bridge snapshot.
 - Technical log and latency dashboards.
 - Shadow PM writing `project-brain/CONTEXT.md`.

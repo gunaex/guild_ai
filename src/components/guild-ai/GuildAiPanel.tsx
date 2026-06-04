@@ -17,6 +17,7 @@ import {
   getGuildAiLaunchReadiness,
   getLatestGuildAiPmDailyReport,
   getGuildAiTaskLogs,
+  getGuildAiVectorMemoryStatus,
   getGuildAiVisualManifest,
   listGuildAiAccounts,
   listGuildAiAdvice,
@@ -38,6 +39,7 @@ import {
   routeGuildAiTask,
   runGuildAiTaskSmoke,
   runGuildAiRuntimeSmoke,
+  scoreGuildAiDailyProductivity,
   stageGuildAiTaskSmoke,
   upsertGuildAiModelPricing,
   type GuildAiAccount,
@@ -69,6 +71,7 @@ import {
   type GuildAiTaskSmokeResult,
   type GuildAiTemplateSummary,
   type GuildAiUpgradeProposal,
+  type GuildAiVectorMemoryStatus,
 } from "../../api/guild-ai";
 
 type LoadState = {
@@ -92,6 +95,7 @@ type LoadState = {
   backupReadiness: GuildAiBackupReadiness | null;
   launchReadiness: GuildAiLaunchReadiness | null;
   pmDailyReport: GuildAiPmDailyReport | null;
+  vectorMemoryStatus: GuildAiVectorMemoryStatus | null;
   briefing: GuildAiSgmBriefing | null;
   pendingUpgrades: number;
   vectorDbProvider: string;
@@ -156,6 +160,7 @@ const emptyState: LoadState = {
   backupReadiness: null,
   launchReadiness: null,
   pmDailyReport: null,
+  vectorMemoryStatus: null,
   briefing: null,
   pendingUpgrades: 0,
   vectorDbProvider: "none",
@@ -314,6 +319,7 @@ export default function GuildAiPanel() {
   const [memoryBusy, setMemoryBusy] = useState(false);
   const [pmReportBusy, setPmReportBusy] = useState(false);
   const [hrReviewBusy, setHrReviewBusy] = useState(false);
+  const [hrScoreBusy, setHrScoreBusy] = useState(false);
   const [governanceBusyRequestId, setGovernanceBusyRequestId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -341,6 +347,7 @@ export default function GuildAiPanel() {
         backupReadiness,
         launchReadiness,
         pmDailyReport,
+        vectorMemoryStatus,
         briefing,
       ] = await Promise.all([
         getGuildAiHealth(),
@@ -362,6 +369,7 @@ export default function GuildAiPanel() {
         getGuildAiBackupReadiness(guildId),
         getGuildAiLaunchReadiness(guildId),
         getLatestGuildAiPmDailyReport(guildId),
+        getGuildAiVectorMemoryStatus(guildId),
         getGuildAiBriefing(guildId),
       ]);
       setState({
@@ -385,6 +393,7 @@ export default function GuildAiPanel() {
         backupReadiness: backupReadiness.readiness,
         launchReadiness: launchReadiness.readiness,
         pmDailyReport: pmDailyReport.report,
+        vectorMemoryStatus: vectorMemoryStatus.status,
         briefing: briefing.briefing,
         pendingUpgrades: health.pendingUpgrades,
         vectorDbProvider: health.vectorDbProvider,
@@ -855,6 +864,19 @@ export default function GuildAiPanel() {
     }
   };
 
+  const scoreDailyProductivity = async () => {
+    setHrScoreBusy(true);
+    setError(null);
+    try {
+      await scoreGuildAiDailyProductivity(selectedGuildId);
+      await load(selectedGuildId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setHrScoreBusy(false);
+    }
+  };
+
   return (
     <section className="space-y-4">
       <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -959,7 +981,15 @@ export default function GuildAiPanel() {
             <Metric label="Report date" value={state.pmDailyReport?.reportDate ?? "-"} />
             <Metric label="Launch score" value={state.pmDailyReport ? `${state.pmDailyReport.summary.launchScore}%` : "-"} />
             <Metric label="Done 24h" value={state.pmDailyReport?.summary.tasks.done24h ?? 0} />
-            <Metric label="Token cost" value={`$${(state.pmDailyReport?.summary.finance.tokenCost ?? 0).toFixed(2)}`} />
+            <Metric
+              label="Avg productivity"
+              value={
+                state.pmDailyReport?.summary.operations.averageProductivityScore === null ||
+                state.pmDailyReport?.summary.operations.averageProductivityScore === undefined
+                  ? "-"
+                  : state.pmDailyReport.summary.operations.averageProductivityScore
+              }
+            />
           </div>
           <div className="rounded-lg border border-sky-500/20 bg-slate-950/70 p-3">
             {state.pmDailyReport ? (
@@ -996,6 +1026,11 @@ export default function GuildAiPanel() {
           <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[11px] text-slate-300">
             {state.briefing?.metrics.memoryRecords ?? state.memories.length} records
           </span>
+          {state.vectorMemoryStatus && (
+            <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(state.vectorMemoryStatus.ready ? "completed" : "watch")}`}>
+              {state.vectorMemoryStatus.provider} {state.vectorMemoryStatus.ready ? "ready" : "watch"}
+            </span>
+          )}
         </div>
         <div className="grid gap-4 p-4 xl:grid-cols-[0.8fr_1.2fr]">
           <form onSubmit={submitMemory} className="grid gap-3">
@@ -1069,6 +1104,14 @@ export default function GuildAiPanel() {
             >
               {hrReviewBusy ? "Recording..." : "Record sample HR review"}
             </button>
+            <button
+              type="button"
+              disabled={hrScoreBusy}
+              onClick={() => void scoreDailyProductivity()}
+              className="rounded-md border border-emerald-400/40 px-3 py-1.5 text-xs text-emerald-100 transition hover:bg-emerald-500/10 disabled:opacity-50"
+            >
+              {hrScoreBusy ? "Scoring..." : "Score today"}
+            </button>
           </div>
         </div>
         <div className="grid gap-4 p-4 xl:grid-cols-2">
@@ -1082,7 +1125,9 @@ export default function GuildAiPanel() {
                   <div className="flex items-center justify-between gap-2">
                     <div>
                       <div className="text-sm font-medium text-slate-100">{review.agent_id}</div>
-                      <div className="mt-0.5 text-xs text-slate-500">{review.review_date}</div>
+                      <div className="mt-0.5 text-xs text-slate-500">
+                        {review.review_date} / {review.scoring_source ?? "manual"}
+                      </div>
                     </div>
                     <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(review.productivity_score < 60 ? "needs_info" : "completed")}`}>
                       score {review.productivity_score}

@@ -1,0 +1,59 @@
+{
+  "guildId": "software-001",
+  "name": "Local Software Studio",
+  "businessType": "software-development",
+  "currency": "USD",
+  "agents": [
+    {
+      "id": "sw-pm-001",
+      "displayName": "Product PM",
+      "role": "pm",
+      "model": "local/llama",
+      "budgetUsdDaily": 4
+    },
+    {
+      "id": "sw-tech-001",
+      "displayName": "Tech Lead",
+      "role": "techLead",
+      "model": "local/llama",
+      "reportsTo": "sw-pm-001",
+      "budgetUsdDaily": 3
+    },
+    {
+      "id": "sw-dev-001",
+      "displayName": "Feature Builder",
+      "role": "worker",
+      "model": "local/llama",
+      "reportsTo": "sw-tech-001",
+      "tools": ["repo-edit", "test-runner", "code-review"],
+      "budgetUsdDaily": 2,
+      "productivityFloor": 72
+    },
+    {
+      "id": "sw-qa-001",
+      "displayName": "QA Analyst",
+      "role": "qa",
+      "model": "local/llama",
+      "reportsTo": "sw-tech-001",
+      "tools": ["test-runner", "artifact-review"],
+      "budgetUsdDaily": 1,
+      "productivityFloor": 75
+    },
+    {
+      "id": "sw-hr-001",
+      "displayName": "People Ops",
+      "role": "hr",
+      "model": "local/llama",
+      "reportsTo": "sw-pm-001",
+      "budgetUsdDaily": 1
+    },
+    {
+      "id": "sw-acct-001",
+      "displayName": "Studio Accountant",
+      "role": "accounting",
+      "model": "local/llama",
+      "reportsTo": "sw-pm-001",
+      "budgetUsdDaily": 1
+    }
+  ]
+}

@@ -10,6 +10,7 @@ import { buildGuildBackupReadiness } from "./backup-readiness.ts";
 import { buildGuildDeploymentReadiness } from "./deployment-readiness.ts";
 import { buildGuildLaunchReadiness } from "./launch-readiness.ts";
 import { generateGuildPmDailyReport, msUntilNextDailyPmReport } from "./pm-daily-report.ts";
+import { scoreGuildProductivityForAllAgents } from "./productivity-scoring.ts";
 
 export function generateDailyPmReportsForAllGuilds(input: {
   db: DatabaseSync;
@@ -22,6 +23,7 @@ export function generateDailyPmReportsForAllGuilds(input: {
   }>;
   let count = 0;
   for (const { guildId } of guilds) {
+    scoreGuildProductivityForAllAgents(input.db, { guildId, generatedAt: input.generatedAt });
     const deployment = buildGuildDeploymentReadiness({
       guildId,
       generatedAt: input.generatedAt,

@@ -46,7 +46,7 @@ describe("Guild AI seeds", () => {
     }
   });
 
-  it("seeds the bundled e-commerce template when available", () => {
+  it("seeds bundled guild templates when available", () => {
     const db = new DatabaseSync(":memory:");
 
     try {
@@ -56,8 +56,12 @@ describe("Guild AI seeds", () => {
       const row = db.prepare("SELECT name, business_type FROM guild_templates WHERE guild_id = ?").get("ecom-001") as
         | { name: string; business_type: string }
         | undefined;
+      const guildIds = db
+        .prepare("SELECT guild_id AS guildId FROM guild_templates ORDER BY guild_id ASC")
+        .all() as Array<{ guildId: string }>;
 
       expect(row).toEqual({ name: "Thai Commerce Ops", business_type: "e-commerce" });
+      expect(guildIds.map((guild) => guild.guildId)).toEqual(["content-001", "ecom-001", "software-001"]);
     } finally {
       db.close();
     }

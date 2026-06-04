@@ -13,6 +13,7 @@ import {
 } from "../guild-ai/accounting-journal.ts";
 import { buildGuildBackupReadiness } from "../guild-ai/backup-readiness.ts";
 import { buildGuildSgmBriefing } from "../guild-ai/briefing.ts";
+import { buildGuildAuditReplay } from "../guild-ai/audit-replay.ts";
 import {
   ALLOWED_ORIGINS,
   ALLOWED_ORIGIN_SUFFIXES,
@@ -24,11 +25,13 @@ import {
   buildGuildDeploymentReadiness,
 } from "../guild-ai/deployment-readiness.ts";
 import { buildGuildLaunchReadiness } from "../guild-ai/launch-readiness.ts";
+import { getGuildVectorMemoryStatus, queryGuildRagMemory } from "../guild-ai/chroma-memory.ts";
 import {
   generateGuildPmDailyReport,
   getLatestGuildPmDailyReport,
   listGuildPmDailyReports,
 } from "../guild-ai/pm-daily-report.ts";
+import { scoreGuildProductivityForAllAgents } from "../guild-ai/productivity-scoring.ts";
 import {
   decideGuildGovernanceRequest,
   listGuildGovernanceRequests,
@@ -52,6 +55,7 @@ import {
   stageGuildTaskSmoke,
 } from "../guild-ai/task-smoke.ts";
 import { validateGuildTemplate } from "../guild-ai/templates.ts";
+import { buildGuildVisualBridgeSnapshot } from "../guild-ai/visual-bridge.ts";
 import { buildGuildVisualManifest } from "../guild-ai/visual-manifest.ts";
 import { insertGuildTemplate } from "../bootstrap/schema/guild-ai-seeds.ts";
 
@@ -188,9 +192,27 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
     res.json({ ok: true, briefing: buildGuildSgmBriefing(db, guildId, nowMs()) });
   });
 
+  app.get("/api/guild-ai/audit/:guildId/replay", (req, res) => {
+    const guildId = req.params.guildId;
+    res.json({
+      ok: true,
+      replay: buildGuildAuditReplay(db, {
+        guildId,
+        generatedAt: nowMs(),
+        since: asNonNegativeNumber(req.query.since, 0) || undefined,
+        limit: asPositiveInt(req.query.limit, 80, 200),
+      }),
+    });
+  });
+
   app.get("/api/guild-ai/visual/:guildId/manifest", (req, res) => {
     const guildId = req.params.guildId;
     res.json({ ok: true, manifest: buildGuildVisualManifest(db, guildId, nowMs()) });
+  });
+
+  app.get("/api/guild-ai/visual/:guildId/bridge-snapshot", (req, res) => {
+    const guildId = req.params.guildId;
+    res.json({ ok: true, snapshot: buildGuildVisualBridgeSnapshot(db, { guildId, generatedAt: nowMs() }) });
   });
 
   app.get("/api/guild-ai/deployment/:guildId/readiness", (req, res) => {
@@ -249,6 +271,7 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
   app.post("/api/guild-ai/reports/:guildId/daily/generate", (req, res) => {
     const guildId = req.params.guildId;
     const generatedAt = nowMs();
+    scoreGuildProductivityForAllAgents(db, { guildId, generatedAt });
     const report = generateGuildPmDailyReport({
       db,
       guildId,
@@ -725,6 +748,36 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
     });
   });
 
+  app.get("/api/guild-ai/memory/:guildId/vector-status", async (req, res) => {
+    const guildId = req.params.guildId;
+    res.json({
+      ok: true,
+      guildId,
+      status: await getGuildVectorMemoryStatus({
+        guildId,
+        provider: process.env.VECTOR_DB_PROVIDER ?? "none",
+        endpoint: process.env.CHROMA_URL ?? null,
+      }),
+    });
+  });
+
+  app.get("/api/guild-ai/memory/:guildId/rag", async (req, res) => {
+    const guildId = req.params.guildId;
+    const query = asText(req.query.query);
+    res.json({
+      ok: true,
+      guildId,
+      result: await queryGuildRagMemory({
+        db,
+        guildId,
+        query,
+        limit: asPositiveInt(req.query.limit, 8, 20),
+        provider: process.env.VECTOR_DB_PROVIDER ?? "none",
+        endpoint: process.env.CHROMA_URL ?? null,
+      }),
+    });
+  });
+
   app.post("/api/guild-ai/memory", (req, res) => {
     const body = req.body as Record<string, unknown>;
     const guildId = asText(body.guildId);
@@ -793,6 +846,26 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
         createdAt: nowMs(),
       });
       res.json({ ok: true, guildId, ...result });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.post("/api/guild-ai/hr/:guildId/score-daily", (req, res) => {
+    const guildId = req.params.guildId;
+    try {
+      const results = scoreGuildProductivityForAllAgents(db, { guildId, generatedAt: nowMs() });
+      recordGuildMemory(db, {
+        guildId,
+        namespace: "governance",
+        content: `Auto productivity scoring completed for ${results.length} Guild agent(s).`,
+        metadata: {
+          sourceType: "auto_productivity_scoring",
+          reviewIds: results.map((result) => result.review.id),
+        },
+        createdAt: nowMs(),
+      });
+      res.json({ ok: true, guildId, results });
     } catch (err) {
       res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
     }
