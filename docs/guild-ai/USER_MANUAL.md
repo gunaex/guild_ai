@@ -22,6 +22,7 @@ Guild AI ตอนนี้คือบริษัท AI local-first ที่�
 - บันทึกบัญชี token usage, AI credit, revenue และ P&L ได้
 - มี self-improvement proposal และ SGM Advisor advice
 - มี model limit governance เพื่อหยุดเฉพาะ model/provider ที่ติด limit
+- มี L2 memory แบบ SQLite สำหรับจำ operating notes, advice, decisions, และ accounting context
 
 คิดง่ายๆ คือ ตอนนี้เรามี "บริษัท AI local ตัวแรก" ที่ใช้ทดสอบงาน, governance, accounting, และ runtime control ได้แล้ว
 
@@ -114,6 +115,12 @@ Guild AI local MVP check: PASS (10/10)
    - เพิ่มคำแนะนำจาก human/SGM
    - จัด category และ priority
    - ใช้เป็น memory/governance seed สำหรับการพัฒนาต่อ
+
+9. L2 Memory
+   - บันทึก operating note แบบถาวร
+   - แยก namespace เช่น operations, governance, accounting, runtime, customer, learning
+   - ระบบ auto-capture บางเหตุการณ์ เช่น proposal, decision, advice, revenue
+   - ใช้เป็นฐานก่อนต่อ ChromaDB L3 memory ภายหลัง
 
 ## 5. Workflow แรกที่ควรลอง
 
@@ -373,9 +380,10 @@ git push
 7. ใช้บันทึก AI credit, token spend, revenue
 8. ใช้เก็บ upgrade proposal
 9. ใช้รับคำแนะนำจาก SGM Advisor
-10. ใช้เก็บ model limit events เพื่อคุมต้นทุน
-11. ใช้เป็นฐานสำหรับ LAN/autostart
-12. ใช้เป็นฐานต่อ memory L2/L3 ในอนาคต
+10. ใช้บันทึก L2 memory เพื่อให้ guild จำบริบทสำคัญ
+11. ใช้เก็บ model limit events เพื่อคุมต้นทุน
+12. ใช้เป็นฐานสำหรับ LAN/autostart
+13. ใช้เป็นฐานต่อ ChromaDB L3 memory ในอนาคต
 
 ## 12. สิ่งที่ยังไม่ควรทำ
 

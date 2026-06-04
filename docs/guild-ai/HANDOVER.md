@@ -104,6 +104,7 @@ It contains the first server-side Guild AI module, auto-seeds the default guild 
 Local `main` tracks `origin/main`. The previous shallow upstream-derived branch is preserved locally as `upstream-shallow-main`.
 The root `README.md` now includes the Guild AI quick start: clone, install, build, run `./node_modules/.bin/tsx server/index.ts`, bootstrap Ollama runtime, and run the guarded smoke workflow from the Guild AI panel.
 The local-first MVP is now accepted by `npm run guild:mvp-check`, which validates the running local server, Guild template, Thai accounting readiness, operating token/P&L data, runtime bindings, latest smoke task, smoke artifact evidence, SGM briefing, and active model-limit blockers.
+The full Guild AI vision is now estimated at 75% after adding SQLite L2 memory: `GET /api/guild-ai/memory/:guildId`, `POST /api/guild-ai/memory`, a Guild AI panel memory section, SGM briefing memory readiness, and automatic memory capture from upgrade proposals, upgrade decisions, SGM advice, and service revenue.
 
 ## Current Best Next Code Change
 
@@ -126,6 +127,7 @@ API-provider model limits are now governed per provider/model. When an API provi
 GitHub push protection blocked the upstream embedded Google OAuth credentials, so the public Guild AI fork removed embedded OAuth app credentials from `server/oauth/helpers.ts`. Configure OAuth integrations with `OAUTH_GITHUB_CLIENT_ID`, `OAUTH_GOOGLE_CLIENT_ID`, and `OAUTH_GOOGLE_CLIENT_SECRET` when needed.
 The visual layer now has a renderer-ready manifest contract at `GET /api/guild-ai/visual/:guildId/manifest`. The Guild AI panel shows a visual manifest preview with scene mood, actors, accounting state, governance state, and task state. This keeps the future office/cartoon renderer path alive while MVP work continues.
 SGM briefing now exists at `GET /api/guild-ai/briefing/:guildId` and in the Guild AI panel. It summarizes headline status, operating bullets, next actions, and a readiness checklist for runtime bindings, AI limits, scratch smoke, accounting, and governance.
+SQLite L2 memory now exists in `guild_memory_records`. Manual records can be created from the Guild AI panel or `POST /api/guild-ai/memory`, recent records are listed through `GET /api/guild-ai/memory/:guildId`, and important governance/accounting events are captured automatically as durable context before ChromaDB L3 retrieval is added.
 
 ## New Strategic Modules
 
@@ -161,6 +163,7 @@ Guild AI now has a governance direction:
 - visual manifest API and panel preview for the future office renderer.
 - SGM briefing API and panel section.
 - SGM readiness checklist cards for immediate operating readiness.
+- SQLite L2 memory API, UI panel, SGM readiness, and automatic governance/accounting memory capture.
 
 Important docs:
 

@@ -14,6 +14,7 @@ import {
 import { buildGuildSgmBriefing } from "../guild-ai/briefing.ts";
 import { seedStarterChartOfAccounts, THAI_ACCOUNTING_CATEGORIES } from "../guild-ai/accounting.ts";
 import { listAiLimitEvents } from "../guild-ai/limit-events.ts";
+import { isGuildMemoryNamespace, listGuildMemories, recordGuildMemory } from "../guild-ai/memory.ts";
 import {
   bootstrapGuildRuntimeWithOllama,
   listGuildRuntimeBindings,
@@ -443,6 +444,14 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
       "INSERT INTO guild_upgrade_events (proposal_id, event_type, note, payload_json, created_at) VALUES (?, ?, ?, ?, ?)",
     ).run(id, "proposed", rationale, asJson({ targetLevel, capabilityArea }, {}), timestamp);
 
+    recordGuildMemory(db, {
+      guildId,
+      namespace: "governance",
+      content: `Upgrade proposal: ${title}. ${rationale}`,
+      metadata: { sourceType: "upgrade_proposal", proposalId: id, capabilityArea, targetLevel },
+      createdAt: timestamp,
+    });
+
     res.json({ ok: true, proposalId: id, status: "pending" });
   });
 
@@ -475,6 +484,19 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
     db.prepare(
       "INSERT INTO guild_upgrade_events (proposal_id, event_type, note, payload_json, created_at) VALUES (?, ?, ?, ?, ?)",
     ).run(proposalId, `decision:${decision}`, note || null, asJson(body, {}), timestamp);
+
+    const proposal = db
+      .prepare("SELECT guild_id, title FROM guild_upgrade_proposals WHERE id = ?")
+      .get(proposalId) as { guild_id: string; title: string } | undefined;
+    if (proposal) {
+      recordGuildMemory(db, {
+        guildId: proposal.guild_id,
+        namespace: "governance",
+        content: `Upgrade decision: ${decision} for '${proposal.title}'. ${note || "No decision note."}`,
+        metadata: { sourceType: "upgrade_decision", proposalId, decision, decidedBy: asText(body.decidedBy) || "SGM" },
+        createdAt: timestamp,
+      });
+    }
 
     res.json({ ok: true, proposalId, status: decision });
   });
@@ -550,7 +572,63 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
       nowMs(),
     );
 
+    recordGuildMemory(db, {
+      guildId,
+      namespace: category === "finance" ? "accounting" : category === "learning" ? "learning" : "governance",
+      content: `SGM advice: ${title}. ${recommendation}`,
+      metadata: { sourceType: "human_advice", adviceId: id, category, priority },
+      createdAt: nowMs(),
+    });
+
     res.json({ ok: true, adviceId: id, status: "open" });
+  });
+
+  app.get("/api/guild-ai/memory/:guildId", (req, res) => {
+    const guildId = req.params.guildId;
+    const namespace = asText(req.query.namespace);
+    if (namespace && !isGuildMemoryNamespace(namespace)) {
+      res.status(400).json({ ok: false, error: "invalid memory namespace." });
+      return;
+    }
+    const memoryNamespace = namespace && isGuildMemoryNamespace(namespace) ? namespace : null;
+    res.json({
+      ok: true,
+      guildId,
+      provider: "sqlite",
+      records: listGuildMemories(db, {
+        guildId,
+        namespace: memoryNamespace,
+        limit: asNonNegativeNumber(req.query.limit, 20),
+      }),
+    });
+  });
+
+  app.post("/api/guild-ai/memory", (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    const guildId = asText(body.guildId);
+    const namespace = asText(body.namespace) || "operations";
+    const content = asText(body.content);
+    if (!guildId || !content) {
+      res.status(400).json({ ok: false, error: "guildId and content are required." });
+      return;
+    }
+    if (!isGuildMemoryNamespace(namespace)) {
+      res.status(400).json({ ok: false, error: "invalid memory namespace." });
+      return;
+    }
+
+    try {
+      const record = recordGuildMemory(db, {
+        guildId,
+        namespace,
+        content,
+        metadata: body.metadata && typeof body.metadata === "object" ? (body.metadata as Record<string, unknown>) : {},
+        createdAt: nowMs(),
+      });
+      res.json({ ok: true, guildId, record });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
   });
 
   app.get("/api/guild-ai/accounting/:guildId", (req, res) => {
@@ -693,6 +771,19 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
         receivedTo: body.receivedTo === "accounts_receivable" ? "accounts_receivable" : "cash",
         sourceType: asText(body.sourceType) || "manual",
         sourceId: asText(body.sourceId) || null,
+        createdAt: nowMs(),
+      });
+
+      recordGuildMemory(db, {
+        guildId,
+        namespace: "accounting",
+        content: `Revenue recorded: ${description} for $${result.amountUsd.toFixed(2)}.`,
+        metadata: {
+          sourceType: "service_revenue",
+          revenueId: result.revenueId,
+          customerName: asText(body.customerName) || null,
+          receivedTo: body.receivedTo === "accounts_receivable" ? "accounts_receivable" : "cash",
+        },
         createdAt: nowMs(),
       });
 

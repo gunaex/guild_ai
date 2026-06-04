@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { listGuildRuntimeBindings } from "./runtime-bindings.ts";
 import { buildGuildVisualManifest } from "./visual-manifest.ts";
+import { countGuildMemories } from "./memory.ts";
 
 type DbLike = Pick<DatabaseSync, "prepare">;
 
@@ -16,7 +17,7 @@ export type GuildSgmBriefing = {
     priority: "low" | "medium" | "high";
   }>;
   readiness: Array<{
-    key: "runtime" | "limits" | "smoke" | "accounting" | "governance";
+    key: "runtime" | "limits" | "smoke" | "accounting" | "governance" | "memory";
     label: string;
     status: "ready" | "action_needed" | "watch";
     detail: string;
@@ -28,6 +29,7 @@ export type GuildSgmBriefing = {
     netIncome: number;
     runtimeAvailable: number;
     runtimeLimited: number;
+    memoryRecords: number;
   };
 };
 
@@ -74,6 +76,7 @@ export function buildGuildSgmBriefing(db: DbLike, guildId: string, generatedAt: 
          AND workflow_meta_json LIKE '%"smoke":true%'`,
     )
     .get(`%"guildId":"${guildId}"%`) as { count: number } | undefined;
+  const memoryRecords = countGuildMemories(db as any, guildId);
 
   const status =
     manifest.actors.length === 0
@@ -89,6 +92,7 @@ export function buildGuildSgmBriefing(db: DbLike, guildId: string, generatedAt: 
     `Runtime readiness: ${runtimeAvailable} available, ${runtimeLimited} limited, ${runtimeDisabled} disabled.`,
     `P&L: revenue $${manifest.accounting.revenue.toFixed(2)}, expenses $${manifest.accounting.expenses.toFixed(2)}, net $${manifest.accounting.netIncome.toFixed(2)}.`,
     `Tasks: ${manifest.tasks.planned} planned, ${manifest.tasks.inProgress} in progress, ${manifest.tasks.review} in review.`,
+    `Memory: ${memoryRecords} SQLite L2 record${memoryRecords === 1 ? "" : "s"} captured for this guild.`,
   ];
   if (blockedRoles.length > 0) bullets.push(`Blocked roles without available runtime: ${blockedRoles.join(", ")}.`);
   if (latestUpgrade?.title) bullets.push(`Pending upgrade: ${latestUpgrade.title}.`);
@@ -115,6 +119,9 @@ export function buildGuildSgmBriefing(db: DbLike, guildId: string, generatedAt: 
   }
   if (nextActions.length === 0) {
     nextActions.push({ key: "continue_operations", label: "Continue local operations and gather more evidence", priority: "low" });
+  }
+  if (memoryRecords === 0) {
+    nextActions.push({ key: "seed_l2_memory", label: "Capture the first durable Guild memory", priority: "medium" });
   }
 
   const readiness: GuildSgmBriefing["readiness"] = [
@@ -162,6 +169,15 @@ export function buildGuildSgmBriefing(db: DbLike, guildId: string, generatedAt: 
           ? `${manifest.governance.pendingUpgrades} upgrade proposal${manifest.governance.pendingUpgrades === 1 ? "" : "s"} awaiting decision.`
           : "No pending upgrade decision blocking operations.",
     },
+    {
+      key: "memory",
+      label: "L2 memory",
+      status: memoryRecords > 0 ? "ready" : "watch",
+      detail:
+        memoryRecords > 0
+          ? `${memoryRecords} durable SQLite memory record${memoryRecords === 1 ? "" : "s"} available.`
+          : "Capture advice, decisions, revenue context, or operating notes as durable memory.",
+    },
   ];
 
   const headline =
@@ -188,6 +204,7 @@ export function buildGuildSgmBriefing(db: DbLike, guildId: string, generatedAt: 
       netIncome: manifest.accounting.netIncome,
       runtimeAvailable,
       runtimeLimited,
+      memoryRecords,
     },
   };
 }

@@ -53,6 +53,7 @@ Guild AI adds a practical autonomous-organization layer:
 - Local Ollama runtime binding for Guild agents.
 - Thai-style accounting with double-entry journals, P&L, prepaid AI credit tracking, token usage, and service revenue.
 - Self-improvement governance with proposals, human decisions, event history, and SGM Advisor advice.
+- SQLite L2 memory for durable operating notes, advice, governance decisions, and accounting context.
 - AI model limit governance that pauses only the limited provider/model and keeps other runtimes moving.
 - Guarded scratch task smoke workflows for Worker -> QA -> retry/escalation validation.
 

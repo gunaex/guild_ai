@@ -119,9 +119,10 @@ Status: planned.
 
 ## Phase 4 - External Tools And Memory
 
-Status: planned.
+Status: active; SQLite L2 memory is implemented, Chroma L3 remains optional.
 
 - Webhook gateway for n8n/Make.
+- SQLite L2 memory records for durable operating facts, advice, decisions, and accounting context.
 - ChromaDB guild memory adapter.
 - Affine/AnythingLLM adapters.
 

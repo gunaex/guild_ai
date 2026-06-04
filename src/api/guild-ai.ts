@@ -36,7 +36,7 @@ export type GuildAiSgmBriefing = {
     priority: "low" | "medium" | "high";
   }>;
   readiness: Array<{
-    key: "runtime" | "limits" | "smoke" | "accounting" | "governance";
+    key: "runtime" | "limits" | "smoke" | "accounting" | "governance" | "memory";
     label: string;
     status: "ready" | "action_needed" | "watch";
     detail: string;
@@ -48,6 +48,7 @@ export type GuildAiSgmBriefing = {
     netIncome: number;
     runtimeAvailable: number;
     runtimeLimited: number;
+    memoryRecords: number;
   };
 };
 
@@ -94,6 +95,19 @@ export type GuildAiAdvice = {
   status: "open" | "accepted" | "deferred" | "completed" | "dismissed";
   created_at: number;
   resolved_at: number | null;
+};
+
+export type GuildAiMemoryNamespace = "operations" | "governance" | "accounting" | "runtime" | "customer" | "learning";
+
+export type GuildAiMemoryRecord = {
+  id: string;
+  guild_id: string;
+  provider: "sqlite" | "chroma";
+  namespace: GuildAiMemoryNamespace;
+  content: string;
+  metadata_json: string;
+  embedding_ref: string | null;
+  created_at: number;
 };
 
 export type GuildAiRuntimeBinding = {
@@ -397,6 +411,26 @@ export async function listGuildAiAdvice(
   guildId: string,
 ): Promise<{ ok: boolean; guildId: string; advice: GuildAiAdvice[] }> {
   return request(`/api/guild-ai/advice/${encodeURIComponent(guildId)}`);
+}
+
+export async function listGuildAiMemories(
+  guildId: string,
+  input?: { namespace?: GuildAiMemoryNamespace; limit?: number },
+): Promise<{ ok: boolean; guildId: string; provider: "sqlite"; records: GuildAiMemoryRecord[] }> {
+  const params = new URLSearchParams();
+  if (input?.namespace) params.set("namespace", input.namespace);
+  if (input?.limit) params.set("limit", String(input.limit));
+  const query = params.toString();
+  return request(`/api/guild-ai/memory/${encodeURIComponent(guildId)}${query ? `?${query}` : ""}`);
+}
+
+export async function createGuildAiMemory(input: {
+  guildId: string;
+  namespace: GuildAiMemoryNamespace;
+  content: string;
+  metadata?: Record<string, unknown>;
+}): Promise<{ ok: boolean; guildId: string; record: GuildAiMemoryRecord }> {
+  return post("/api/guild-ai/memory", input);
 }
 
 export async function listGuildAiRuntimeBindings(

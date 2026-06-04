@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import {
   bootstrapGuildAiOllamaRuntime,
   createGuildAiAdvice,
+  createGuildAiMemory,
   createGuildAiUpgradeProposal,
   decideGuildAiUpgrade,
   getGuildAiAccounting,
@@ -15,6 +16,7 @@ import {
   listGuildAiAdvice,
   listGuildAiJournal,
   listGuildAiLimitEvents,
+  listGuildAiMemories,
   listGuildAiModelPricing,
   listGuildAiRuntimeBindings,
   listGuildAiTaskSmokes,
@@ -37,6 +39,8 @@ import {
   type GuildAiVisualManifest,
   type GuildAiJournalEntry,
   type GuildAiLimitEvent,
+  type GuildAiMemoryNamespace,
+  type GuildAiMemoryRecord,
   type GuildAiModelPricing,
   type GuildAiProfitAndLoss,
   type GuildAiRuntimeBinding,
@@ -57,6 +61,7 @@ type LoadState = {
   capability: GuildAiCapability | null;
   proposals: GuildAiUpgradeProposal[];
   advice: GuildAiAdvice[];
+  memories: GuildAiMemoryRecord[];
   accounts: GuildAiAccount[];
   accountingSummary: GuildAiAccountingSummary | null;
   prepaidAiCreditBalance: number;
@@ -104,11 +109,17 @@ type PricingFormState = {
   completionUsdPerMillion: string;
 };
 
+type MemoryFormState = {
+  namespace: GuildAiMemoryNamespace;
+  content: string;
+};
+
 const emptyState: LoadState = {
   templates: [],
   capability: null,
   proposals: [],
   advice: [],
+  memories: [],
   accounts: [],
   accountingSummary: null,
   prepaidAiCreditBalance: 0,
@@ -184,6 +195,11 @@ const defaultPricingForm: PricingFormState = {
   model: "*",
   promptUsdPerMillion: "0",
   completionUsdPerMillion: "0",
+};
+
+const defaultMemoryForm: MemoryFormState = {
+  namespace: "operations",
+  content: "",
 };
 
 function TextInput({
@@ -267,6 +283,8 @@ export default function GuildAiPanel() {
   const [taskLogSnapshot, setTaskLogSnapshot] = useState<GuildAiTaskLogSnapshot | null>(null);
   const [taskArtifactSnapshot, setTaskArtifactSnapshot] = useState<GuildAiTaskArtifactSnapshot | null>(null);
   const [pricingForm, setPricingForm] = useState<PricingFormState>(defaultPricingForm);
+  const [memoryForm, setMemoryForm] = useState<MemoryFormState>(defaultMemoryForm);
+  const [memoryBusy, setMemoryBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (guildId: string) => {
@@ -279,6 +297,7 @@ export default function GuildAiPanel() {
         capability,
         upgrades,
         advice,
+        memories,
         accounts,
         accounting,
         journal,
@@ -293,6 +312,7 @@ export default function GuildAiPanel() {
         getGuildAiCapabilities(guildId),
         listGuildAiUpgrades(guildId),
         listGuildAiAdvice(guildId),
+        listGuildAiMemories(guildId, { limit: 8 }),
         listGuildAiAccounts(guildId),
         getGuildAiAccounting(guildId),
         listGuildAiJournal(guildId),
@@ -307,6 +327,7 @@ export default function GuildAiPanel() {
         capability: capability.capability,
         proposals: upgrades.proposals,
         advice: advice.advice,
+        memories: memories.records,
         accounts: accounts.accounts,
         accountingSummary: accounting.summary,
         prepaidAiCreditBalance: accounting.prepaidAiCreditBalance,
@@ -451,6 +472,31 @@ export default function GuildAiPanel() {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setAdviceFormBusy(false);
+    }
+  };
+
+  const submitMemory = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!memoryForm.content.trim()) {
+      setError("Memory content is required.");
+      return;
+    }
+
+    setMemoryBusy(true);
+    setError(null);
+    try {
+      await createGuildAiMemory({
+        guildId: selectedGuildId,
+        namespace: memoryForm.namespace,
+        content: memoryForm.content,
+        metadata: { sourceType: "manual_ui" },
+      });
+      setMemoryForm(defaultMemoryForm);
+      await load(selectedGuildId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setMemoryBusy(false);
     }
   };
 
@@ -745,6 +791,70 @@ export default function GuildAiPanel() {
         <Metric label="Runtime ready" value={state.briefing?.metrics.runtimeAvailable ?? 0} />
         <Metric label="Runtime limited" value={state.briefing?.metrics.runtimeLimited ?? 0} />
       </div>
+
+      <section className="rounded-lg border border-slate-700/70 bg-slate-950/70">
+        <div className="flex flex-col gap-2 border-b border-slate-700/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="font-semibold text-slate-100">L2 memory</h3>
+            <p className="mt-0.5 text-xs text-slate-400">Durable SQLite memory for operating decisions, evidence, and advice</p>
+          </div>
+          <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[11px] text-slate-300">
+            {state.briefing?.metrics.memoryRecords ?? state.memories.length} records
+          </span>
+        </div>
+        <div className="grid gap-4 p-4 xl:grid-cols-[0.8fr_1.2fr]">
+          <form onSubmit={submitMemory} className="grid gap-3">
+            <label className="grid gap-1 text-xs text-slate-400">
+              Namespace
+              <select
+                value={memoryForm.namespace}
+                onChange={(event) =>
+                  setMemoryForm((prev) => ({ ...prev, namespace: event.target.value as GuildAiMemoryNamespace }))
+                }
+                className="min-h-9 rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100"
+              >
+                {(["operations", "governance", "accounting", "runtime", "customer", "learning"] as const).map((namespace) => (
+                  <option key={namespace} value={namespace}>
+                    {namespace}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <TextArea
+              label="Memory note"
+              value={memoryForm.content}
+              onChange={(value) => setMemoryForm((prev) => ({ ...prev, content: value }))}
+              placeholder="Record a durable operating fact, decision, customer note, or lesson learned."
+            />
+            <div>
+              <button
+                type="submit"
+                disabled={memoryBusy}
+                className="rounded-md border border-emerald-400/40 px-3 py-1.5 text-xs font-medium text-emerald-100 transition hover:bg-emerald-500/10 disabled:opacity-50"
+              >
+                {memoryBusy ? "Saving..." : "Save memory"}
+              </button>
+            </div>
+          </form>
+          <div className="grid gap-2">
+            {state.memories.length === 0 ? (
+              <div className="text-sm text-slate-400">No durable Guild memory yet.</div>
+            ) : (
+              state.memories.map((memory) => (
+                <div key={memory.id} className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[11px] text-slate-300">
+                      {memory.namespace}
+                    </span>
+                    <span className="text-[11px] text-slate-500">{formatDate(memory.created_at)}</span>
+                  </div>
+                  <div className="mt-2 text-sm leading-6 text-slate-200">{memory.content}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
 
       {state.briefing && (
         <section className="rounded-lg border border-slate-700/70 bg-slate-950/70">
