@@ -21,7 +21,12 @@ import {
 } from "../guild-ai/runtime-bindings.ts";
 import { buildGuildRuntimeSmokePrompt, normalizeSmokeRole, stripApiProviderEnvelope } from "../guild-ai/runtime-smoke.ts";
 import { applyGuildTaskRouteDecision, type GuildTaskRouteDecision } from "../guild-ai/task-routing.ts";
-import { readGuildTaskSmokeArtifacts, resolveGuildTaskSmokeRunTarget, stageGuildTaskSmoke } from "../guild-ai/task-smoke.ts";
+import {
+  listRecentGuildTaskSmokes,
+  readGuildTaskSmokeArtifacts,
+  resolveGuildTaskSmokeRunTarget,
+  stageGuildTaskSmoke,
+} from "../guild-ai/task-smoke.ts";
 import { validateGuildTemplate } from "../guild-ai/templates.ts";
 import { buildGuildVisualManifest } from "../guild-ai/visual-manifest.ts";
 import { insertGuildTemplate } from "../bootstrap/schema/guild-ai-seeds.ts";
@@ -252,6 +257,22 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
       });
       ctx.broadcast("task_update", db.prepare("SELECT * FROM tasks WHERE id = ?").get(result.taskId));
       res.json({ ok: true, ...result });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.get("/api/guild-ai/runtime/:guildId/task-smokes", (req, res) => {
+    const guildId = req.params.guildId;
+    try {
+      res.json({
+        ok: true,
+        guildId,
+        tasks: listRecentGuildTaskSmokes(db, {
+          guildId,
+          limit: asNonNegativeNumber(req.query.limit, 10),
+        }),
+      });
     } catch (err) {
       res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
     }

@@ -139,7 +139,21 @@ export type GuildAiTaskSmokeResult = {
   taskId: string;
   runtimeAgentId: string;
   runtimeAgentName: string;
-  status: "planned";
+  status: string;
+};
+
+export type GuildAiTaskSmokeSummary = {
+  taskId: string;
+  guildId: string;
+  roleKey: string;
+  title: string;
+  status: string;
+  projectId: string | null;
+  projectPath: string | null;
+  runtimeAgentId: string | null;
+  runtimeAgentName: string | null;
+  createdAt: number;
+  updatedAt: number;
 };
 
 export type GuildAiTaskSmokeRunResult = {
@@ -427,6 +441,14 @@ export async function stageGuildAiTaskSmoke(
   input?: { roleKey?: string; scratchRoot?: string },
 ): Promise<GuildAiTaskSmokeResult> {
   return post(`/api/guild-ai/runtime/${encodeURIComponent(guildId)}/task-smoke`, input ?? {});
+}
+
+export async function listGuildAiTaskSmokes(
+  guildId: string,
+  input?: { limit?: number },
+): Promise<{ ok: boolean; guildId: string; tasks: GuildAiTaskSmokeSummary[] }> {
+  const limit = input?.limit ?? 10;
+  return request(`/api/guild-ai/runtime/${encodeURIComponent(guildId)}/task-smokes?limit=${encodeURIComponent(limit)}`);
 }
 
 export async function runGuildAiTaskSmoke(

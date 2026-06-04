@@ -5,7 +5,12 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { applyBaseSchema } from "../bootstrap/schema/base-schema.ts";
 import { applyGuildAiSchema } from "../bootstrap/schema/guild-ai-schema.ts";
-import { readGuildTaskSmokeArtifacts, resolveGuildTaskSmokeRunTarget, stageGuildTaskSmoke } from "./task-smoke.ts";
+import {
+  listRecentGuildTaskSmokes,
+  readGuildTaskSmokeArtifacts,
+  resolveGuildTaskSmokeRunTarget,
+  stageGuildTaskSmoke,
+} from "./task-smoke.ts";
 
 function seedRuntimeBinding(db: DatabaseSync, now: number): void {
   applyBaseSchema(db);
@@ -204,6 +209,52 @@ describe("Guild AI task smoke", () => {
       expect(snapshot.artifacts.find((artifact) => artifact.name === "SMOKE_RESULT.md")).toMatchObject({
         exists: true,
         content: expect.stringContaining("Agent completed."),
+      });
+    } finally {
+      db.close();
+    }
+  });
+
+  it("lists recent Guild smoke tasks for reload recovery", () => {
+    const db = new DatabaseSync(":memory:");
+    const now = Date.UTC(2026, 0, 2);
+    try {
+      seedRuntimeBinding(db, now);
+      const first = stageGuildTaskSmoke(db, {
+        guildId: "ecom-001",
+        roleKey: "techLead",
+        scratchRoot: path.join(os.tmpdir(), "guild-ai-task-smoke-test"),
+        now,
+      });
+      const second = stageGuildTaskSmoke(db, {
+        guildId: "ecom-001",
+        roleKey: "techLead",
+        scratchRoot: path.join(os.tmpdir(), "guild-ai-task-smoke-test"),
+        now: now + 1,
+      });
+      db.prepare(
+        `INSERT INTO tasks (
+          id, title, status, assigned_agent_id, workflow_meta_json, project_path, created_at, updated_at
+        ) VALUES (?, ?, 'planned', ?, ?, ?, ?, ?)`,
+      ).run(
+        "other-guild",
+        "Other guild smoke",
+        "aria",
+        JSON.stringify({ guildId: "other", roleKey: "techLead", smoke: true }),
+        path.join(os.tmpdir(), "guild-ai-task-smoke-test", "other"),
+        now + 2,
+        now + 2,
+      );
+
+      const tasks = listRecentGuildTaskSmokes(db, { guildId: "ecom-001", limit: 5 });
+
+      expect(tasks.map((task) => task.taskId)).toEqual([second.taskId, first.taskId]);
+      expect(tasks[0]).toMatchObject({
+        guildId: "ecom-001",
+        roleKey: "techLead",
+        runtimeAgentId: "aria",
+        runtimeAgentName: "Aria",
+        status: "planned",
       });
     } finally {
       db.close();

@@ -17,6 +17,7 @@ import {
   listGuildAiLimitEvents,
   listGuildAiModelPricing,
   listGuildAiRuntimeBindings,
+  listGuildAiTaskSmokes,
   listGuildAiTemplates,
   listGuildAiUpgradeEvents,
   listGuildAiUpgrades,
@@ -255,6 +256,7 @@ export default function GuildAiPanel() {
   const [runtimeSmokeBusy, setRuntimeSmokeBusy] = useState(false);
   const [taskSmokeBusy, setTaskSmokeBusy] = useState(false);
   const [taskSmokeRunBusy, setTaskSmokeRunBusy] = useState(false);
+  const [taskSmokeLoadBusy, setTaskSmokeLoadBusy] = useState(false);
   const [taskArtifactBusy, setTaskArtifactBusy] = useState(false);
   const [taskLogBusy, setTaskLogBusy] = useState(false);
   const [taskRouteBusy, setTaskRouteBusy] = useState<GuildAiTaskRouteDecision | null>(null);
@@ -623,6 +625,38 @@ export default function GuildAiPanel() {
     }
   };
 
+  const loadLatestTaskSmoke = async () => {
+    setTaskSmokeLoadBusy(true);
+    setError(null);
+    try {
+      const result = await listGuildAiTaskSmokes(selectedGuildId, { limit: 1 });
+      const latest = result.tasks[0];
+      if (!latest) {
+        setError("No Guild AI smoke task found yet.");
+        return;
+      }
+      setTaskSmokeResult({
+        ok: true,
+        guildId: latest.guildId,
+        roleKey: latest.roleKey,
+        projectId: latest.projectId ?? "unknown",
+        projectPath: latest.projectPath ?? "",
+        taskId: latest.taskId,
+        runtimeAgentId: latest.runtimeAgentId ?? "",
+        runtimeAgentName: latest.runtimeAgentName ?? "Unassigned",
+        status: latest.status,
+      });
+      setTaskSmokeRunResult(null);
+      setTaskRouteResult(null);
+      await refreshTaskLogs(latest.taskId);
+      await refreshTaskArtifacts(latest.taskId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setTaskSmokeLoadBusy(false);
+    }
+  };
+
   const runTaskSmoke = async () => {
     if (!taskSmokeResult) return;
     setTaskSmokeRunBusy(true);
@@ -866,6 +900,14 @@ export default function GuildAiPanel() {
             >
               Stage task smoke
             </button>
+            <button
+              type="button"
+              disabled={taskSmokeLoadBusy}
+              onClick={() => void loadLatestTaskSmoke()}
+              className="rounded-md border border-slate-600 px-3 py-1.5 text-xs text-slate-200 transition hover:bg-slate-800 disabled:opacity-50"
+            >
+              {taskSmokeLoadBusy ? "Loading..." : "Load latest smoke"}
+            </button>
           </div>
         </div>
         <div className="grid gap-2 p-4 md:grid-cols-2 xl:grid-cols-3">
@@ -962,7 +1004,9 @@ export default function GuildAiPanel() {
                 ))}
                 <button
                   type="button"
-                  disabled={taskSmokeRunBusy || taskRouteBusy !== null}
+                  disabled={
+                    taskSmokeRunBusy || taskRouteBusy !== null || !["planned", "pending"].includes(taskSmokeResult.status)
+                  }
                   onClick={() => void runTaskSmoke()}
                   className="rounded-md border border-emerald-400/40 px-2.5 py-1 text-xs text-emerald-100 transition hover:bg-emerald-500/10 disabled:opacity-50"
                 >

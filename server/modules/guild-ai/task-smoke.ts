@@ -48,6 +48,20 @@ export type GuildTaskSmokeArtifactSnapshot = {
   }>;
 };
 
+export type GuildTaskSmokeSummary = {
+  taskId: string;
+  guildId: string;
+  roleKey: string;
+  title: string;
+  status: string;
+  projectId: string | null;
+  projectPath: string | null;
+  runtimeAgentId: string | null;
+  runtimeAgentName: string | null;
+  createdAt: number;
+  updatedAt: number;
+};
+
 type TaskSmokeRunRow = {
   id: string;
   title: string;
@@ -55,6 +69,19 @@ type TaskSmokeRunRow = {
   assigned_agent_id: string | null;
   workflow_meta_json: string | null;
   project_path: string | null;
+};
+
+type TaskSmokeSummaryRow = {
+  id: string;
+  title: string;
+  status: string;
+  project_id: string | null;
+  project_path: string | null;
+  assigned_agent_id: string | null;
+  runtime_agent_name: string | null;
+  workflow_meta_json: string | null;
+  created_at: number | null;
+  updated_at: number | null;
 };
 
 function safeScratchRoot(raw: string | null | undefined): string {
@@ -163,6 +190,57 @@ export function readGuildTaskSmokeArtifacts(
       };
     }),
   };
+}
+
+export function listRecentGuildTaskSmokes(
+  db: DbLike,
+  input: { guildId: string; limit?: number },
+): GuildTaskSmokeSummary[] {
+  const guildId = input.guildId.trim();
+  if (!guildId) throw new Error("guildId is required.");
+  const limit = Math.max(1, Math.min(50, Math.trunc(input.limit ?? 10)));
+
+  const rows = db
+    .prepare(
+      `SELECT
+         t.id,
+         t.title,
+         t.status,
+         t.project_id,
+         t.project_path,
+         t.assigned_agent_id,
+         a.name AS runtime_agent_name,
+         t.workflow_meta_json,
+         t.created_at,
+         t.updated_at
+       FROM tasks t
+       LEFT JOIN agents a ON t.assigned_agent_id = a.id
+       WHERE t.workflow_meta_json LIKE '%"smoke":true%'
+       ORDER BY t.updated_at DESC, t.created_at DESC
+       LIMIT ?`,
+    )
+    .all(limit * 4) as TaskSmokeSummaryRow[];
+
+  return rows
+    .map((row) => {
+      const meta = parseMeta(row.workflow_meta_json);
+      if (String(meta.guildId ?? "").trim() !== guildId || meta.smoke !== true) return null;
+      return {
+        taskId: row.id,
+        guildId,
+        roleKey: String(meta.currentGuildRole ?? meta.roleKey ?? "unknown"),
+        title: row.title,
+        status: row.status,
+        projectId: row.project_id,
+        projectPath: row.project_path,
+        runtimeAgentId: row.assigned_agent_id,
+        runtimeAgentName: row.runtime_agent_name,
+        createdAt: Number(row.created_at ?? 0),
+        updatedAt: Number(row.updated_at ?? 0),
+      };
+    })
+    .filter((row): row is GuildTaskSmokeSummary => Boolean(row))
+    .slice(0, limit);
 }
 
 export function resolveGuildTaskSmokeRunTarget(
