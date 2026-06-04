@@ -6,7 +6,7 @@ Turn Guild AI into a long-running autonomous organization framework that works l
 
 ## Current State
 
-The workspace contains a Guild AI scaffold built from the source blueprint. It proves the architecture shape but is not yet merged into the recommended upstream fork.
+The workspace contains the Guild AI fork built on top of Claw-Empire. The public snapshot is published at `https://github.com/gunaex/guild_ai.git` on `main`.
 
 Important files:
 
@@ -93,13 +93,15 @@ Then make the smallest change that moves the current phase forward.
 
 ## Current Best Next Command
 
-The local Claw-Empire based workspace already exists:
+The local Claw-Empire based workspace already exists and tracks the published GitHub repo:
 
 ```bash
 cd worktrees/guild-ai-claw-fork
+git status
 ```
 
 It contains the first server-side Guild AI module, auto-seeds the default guild template, and includes the first Guild AI UI panel with governance and accounting workflows.
+Local `main` tracks `origin/main`. The previous shallow upstream-derived branch is preserved locally as `upstream-shallow-main`.
 
 ## Current Best Next Code Change
 
@@ -119,6 +121,7 @@ Guild AI can now stage a safe scratch task smoke for an active runtime binding. 
 Guild-aware task route decisions now exist at `POST /api/guild-ai/tasks/:taskId/route-decision`. Supported decisions are `worker_done`, `qa_pass`, `qa_fail`, and `techlead_escalate`. The policy routes Worker completion to QA review, QA failure back to Worker until retry budget is exhausted, then escalates to Tech Lead and PM. The real run-completion lifecycle now calls `worker_done` for Guild tasks, so successful Guild Worker runs are assigned to the active QA runtime binding automatically. The real review lifecycle now maps Guild QA approval to `qa_pass` and Guild QA hold/revision to `qa_fail`.
 The Guild AI panel can stage a Worker task smoke and exercise route decisions directly from the UI, including worker done, QA fail, QA pass, and Tech Lead escalation. It also shows the staged task's current status, assigned agent, and latest task logs through `GET /api/guild-ai/tasks/:taskId/logs`.
 API-provider model limits are now governed per provider/model. When an API provider returns 429/rate-limit, quota, billing, or credit exhaustion errors, Guild AI records a row in `guild_ai_limit_events` with retry/active-until metadata. Active limited provider/model pairs are paused before repeat calls, while other providers/models can continue. If a same-role runtime binding is available and not limited, the task is reassigned to that backup agent/provider/model and continues. When the cooldown expires, the row is marked with `recovered_at` and that provider/model becomes callable again automatically. Recent events are available at `GET /api/guild-ai/limits/:guildId` and in the Guild AI panel. Runtime binding rows now also include `availability_status` and `active_limit`, so the Guild AI panel can show available/limited/disabled status before a run starts. Runtime smoke, task smoke, and Guild route decisions now prefer available bindings over known-limited bindings. Real task execution also preflights Guild runtime availability before marking a task in progress or creating a worktree; limited assigned runtimes switch to an available same-role runtime, and fully blocked roles stay pending. SGM briefing metrics now include runtime available/limited counts and blocked-role detection.
+GitHub push protection blocked the upstream embedded Google OAuth credentials, so the public Guild AI fork removed embedded OAuth app credentials from `server/oauth/helpers.ts`. Configure OAuth integrations with `OAUTH_GITHUB_CLIENT_ID`, `OAUTH_GOOGLE_CLIENT_ID`, and `OAUTH_GOOGLE_CLIENT_SECRET` when needed.
 The visual layer now has a renderer-ready manifest contract at `GET /api/guild-ai/visual/:guildId/manifest`. The Guild AI panel shows a visual manifest preview with scene mood, actors, accounting state, governance state, and task state. This keeps the future office/cartoon renderer path alive while MVP work continues.
 SGM briefing now exists at `GET /api/guild-ai/briefing/:guildId` and in the Guild AI panel. It summarizes headline status, operating bullets, and next actions from runtime bindings, P&L, pending upgrades, advice, and task state.
 
@@ -149,6 +152,7 @@ Guild AI now has a governance direction:
 - Guild AI panel controls for staged task route decisions.
 - Guild AI panel task log viewer for staged route smoke validation.
 - AI limit event capture, active model pause behavior, runtime binding availability, available-binding smoke/routing/execution-start selection, SGM runtime readiness metrics, same-role fallback routing, and automatic cooldown recovery for API providers.
+- public-safe OAuth env configuration and GitHub repo publication.
 - visual manifest API and panel preview for the future office renderer.
 - SGM briefing API and panel section.
 
@@ -178,4 +182,5 @@ Latest result after guarded Guild smoke-run execution:
 - API: 62 test files and 251 tests passed.
 - Web: 25 test files and 76 tests passed.
 - Build: `npm run build` passed.
+- Public GitHub repo: `origin/main` at `84586ee feat: publish Guild AI fork snapshot`.
 - Browser smoke: Guild AI panel opens from sidebar, renders Thai accounting chart, records sample token spend into journal entries, creates upgrade proposals, renders proposal event history, and creates SGM Advisor advice.

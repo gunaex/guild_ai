@@ -6,20 +6,20 @@ Last updated: 2026-06-04
 
 Current estimate:
 
-- Full Guild AI vision: 61%
-- Local-first MVP: 90%
+- Full Guild AI vision: 62%
+- Local-first MVP: 91%
 
 Basis:
 
 - Foundation/scaffold: 95%
-- Claw-Empire fork integration: 72%
+- Claw-Empire fork integration: 75%
 - Guild schema/template/accounting: 88%
 - Self-improvement governance: 64%
 - Local Ollama/runtime binding: 75%
 - Real task execution under Guild control: 78%
 - HR governance: 20%
 - Memory L2/L3 and external tools: 20%
-- LAN/internet hardened deployment: 25%
+- LAN/internet hardened deployment: 30%
 - Dual visual layer and long-running dashboards: 35%
 
 Rule going forward: every progress report should include both the full-vision percentage and the local-first MVP percentage.
@@ -122,6 +122,8 @@ This local repo currently contains a clean Guild AI scaffold, not the upstream f
 - Real task execution now runs a Guild runtime preflight before marking tasks in progress or creating worktrees: if the assigned runtime is limited, it switches to an available same-role runtime first; if every active same-role runtime is limited, it keeps the task pending.
 - Added a guarded Guild smoke-run endpoint and panel action that starts staged scratch smoke tasks only after verifying the task is a Guild smoke task, the project path is inside the system temp directory, and the target role has an available runtime binding.
 - Staged scratch smoke projects now include `GUILD_SMOKE.md` and `SMOKE_RESULT.md` so runtime agents have a clear local brief and a concrete output file to update during the first real smoke run.
+- Published the Guild AI fork snapshot to `https://github.com/gunaex/guild_ai.git` on `main`.
+- Removed embedded upstream OAuth app credentials from `server/oauth/helpers.ts`; GitHub and Google OAuth app credentials must now be supplied through environment variables.
 
 ## Verified
 
@@ -182,19 +184,21 @@ Latest fork test result:
 - API: 62 test files passed, 251 tests passed.
 - Web: 25 test files passed, 76 tests passed.
 - Build: `npm run build` passed.
+- Public repo publish: `origin/main` points at `84586ee feat: publish Guild AI fork snapshot`.
 - Browser smoke: Guild AI panel visible, Thai accounting chart rendered, sample token spend produced a journal entry, upgrade proposal creation worked, proposal event history rendered, and SGM Advisor advice creation worked.
-- Latest code verification also covered service revenue journal entries, prepaid AI credit top-ups, prepaid credit balance reduction from token usage, API provider prepaid/fallback payment selection, AI provider/model limit event capture, active-limit pause behavior, runtime binding availability display, SGM runtime readiness metrics, available-binding selection for smoke and route decisions, guarded staged-smoke execution from the Guild AI panel, scratch smoke brief/result files, execution-start preflight switching/blocking for limited Guild runtimes, same-role fallback routing, automatic recovery after cooldown expiry, Guild-aware task route decisions wired into run completion and QA review outcomes, Guild task route UI controls and task log visibility, P&L income calculation, API provider streaming usage parsing, Ollama auto-configuration, Guild runtime binding selection, real Local Ollama runtime bootstrap, and direct-chat token usage capture.
+- Latest code verification also covered service revenue journal entries, prepaid AI credit top-ups, prepaid credit balance reduction from token usage, API provider prepaid/fallback payment selection, AI provider/model limit event capture, active-limit pause behavior, runtime binding availability display, SGM runtime readiness metrics, available-binding selection for smoke and route decisions, guarded staged-smoke execution from the Guild AI panel, scratch smoke brief/result files, execution-start preflight switching/blocking for limited Guild runtimes, same-role fallback routing, automatic recovery after cooldown expiry, public-safe OAuth env configuration, GitHub repo publication, Guild-aware task route decisions wired into run completion and QA review outcomes, Guild task route UI controls and task log visibility, P&L income calculation, API provider streaming usage parsing, Ollama auto-configuration, Guild runtime binding selection, real Local Ollama runtime bootstrap, and direct-chat token usage capture.
 
 ## Known Notes
 
 - `npm install` reported 15 low/moderate dependency vulnerabilities from the dependency tree.
-- This repo is not currently initialized as a normal Git repo in the sandbox environment.
-- A true GitHub fork still needs the user's GitHub account, but a local Claw-Empire fork workspace can now be bootstrapped with `scripts/bootstrap-claw-fork.sh`.
+- The fork is now published at `https://github.com/gunaex/guild_ai.git`.
+- Local branch `main` tracks `origin/main`; the old shallow upstream-derived branch is kept locally as `upstream-shallow-main`.
 - `VECTOR_DB_PROVIDER=chroma` is recognized but the Chroma adapter intentionally reports "not implemented yet" until the L3 memory phase.
 - The local fork was verified with `npm` because `pnpm` and `corepack` were not available in this environment.
 - `npm start` in the local fork hit upstream's Remotion prestart bootstrap, so direct server verification used `./node_modules/.bin/tsx server/index.ts`.
 - Upstream API tests pass outside sandbox: 46 test files, 203 tests.
 - The fork dependency tree reported 2 critical vulnerabilities during `npm install`; audit before production.
+- OAuth provider credentials are no longer embedded. Set `OAUTH_GITHUB_CLIENT_ID`, `OAUTH_GOOGLE_CLIENT_ID`, and `OAUTH_GOOGLE_CLIENT_SECRET` when those integrations are needed.
 
 ## Next Step
 

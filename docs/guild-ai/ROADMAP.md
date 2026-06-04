@@ -24,6 +24,8 @@ Status: mostly complete.
 - Docker Compose for core, Redis, and Chroma.
 - LLM response hardening.
 - UI state bridge.
+- Public GitHub fork snapshot at `https://github.com/gunaex/guild_ai.git`.
+- Embedded upstream OAuth app credentials removed; OAuth integrations now require env-supplied app credentials.
 
 ## Phase 1 - Guild Schema And Accounting
 
