@@ -88,7 +88,7 @@ async function main() {
   add(activeLimits.length === 0 ? "pass" : "watch", "active model limits", `${activeLimits.length} active limit(s)`);
 
   const pmReport = (await request(`/api/guild-ai/reports/${encodeURIComponent(guildId)}/daily/latest`, { headers })).body.report;
-  add(pmReport ? "pass" : "watch", "daily PM report", pmReport ? `latest ${pmReport.report_date}` : "no report generated yet");
+  add(pmReport ? "pass" : "watch", "daily PM report", pmReport ? `latest ${pmReport.reportDate}` : "no report generated yet");
 
   const ollama = await optionalJson(`${ollamaBaseUrl.replace(/\/$/, "")}/v1/models`);
   add(ollama.ok ? "pass" : "watch", "local Ollama", ollama.ok ? `${ollama.body?.data?.length ?? 0} model(s)` : ollama.detail);
