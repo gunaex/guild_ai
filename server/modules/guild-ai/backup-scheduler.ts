@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import type { DatabaseSync } from "node:sqlite";
+import { DatabaseSync } from "node:sqlite";
 
 type DbLike = Pick<DatabaseSync, "prepare">;
 
@@ -26,6 +26,13 @@ export type GuildBackupRunResult = {
     backupDir: string;
     files: Array<{ key: string; source: string; target: string; sizeBytes: number }>;
     pruned: string[];
+    restoreProof: {
+      status: "verified" | "failed";
+      checkedAt: number;
+      integrity: string;
+      requiredTablesPresent: boolean;
+      error?: string;
+    } | null;
   };
 };
 
@@ -79,6 +86,58 @@ function pruneOldSnapshots(backupDir: string, now: number, retentionDays: number
   return pruned;
 }
 
+function verifySnapshotRestore(input: {
+  snapshotDbPath: string | null;
+  checkedAt: number;
+}): NonNullable<GuildBackupRunResult["manifest"]["restoreProof"]> {
+  if (!input.snapshotDbPath) {
+    return {
+      status: "failed",
+      checkedAt: input.checkedAt,
+      integrity: "missing",
+      requiredTablesPresent: false,
+      error: "Snapshot does not include sqlite-db.",
+    };
+  }
+
+  let restoreDb: DatabaseSync | null = null;
+  try {
+    restoreDb = new DatabaseSync(input.snapshotDbPath);
+    const integrityRow = restoreDb.prepare("PRAGMA integrity_check").get() as { integrity_check?: string } | undefined;
+    const integrity = String(integrityRow?.integrity_check ?? "unknown");
+    const requiredTables = ["guild_templates", "guild_backup_snapshots", "settings"];
+    const foundRows = restoreDb
+      .prepare(
+        `SELECT name
+         FROM sqlite_master
+         WHERE type = 'table'
+           AND name IN (${requiredTables.map(() => "?").join(",")})`,
+      )
+      .all(...requiredTables) as Array<{ name: string }>;
+    const found = new Set(foundRows.map((row) => row.name));
+    const requiredTablesPresent = requiredTables.every((table) => found.has(table));
+    return {
+      status: integrity === "ok" && requiredTablesPresent ? "verified" : "failed",
+      checkedAt: input.checkedAt,
+      integrity,
+      requiredTablesPresent,
+      ...(integrity === "ok" && requiredTablesPresent
+        ? {}
+        : { error: `Restore proof failed: integrity=${integrity}, requiredTablesPresent=${requiredTablesPresent}` }),
+    };
+  } catch (err) {
+    return {
+      status: "failed",
+      checkedAt: input.checkedAt,
+      integrity: "error",
+      requiredTablesPresent: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  } finally {
+    restoreDb?.close();
+  }
+}
+
 export function runGuildBackupSnapshot(input: {
   db: DatabaseSync;
   guildId: string;
@@ -101,6 +160,7 @@ export function runGuildBackupSnapshot(input: {
     backupDir: snapshotDir,
     files: [],
     pruned: [],
+    restoreProof: null,
   };
 
   try {
@@ -111,8 +171,15 @@ export function runGuildBackupSnapshot(input: {
       copyIfExists(`${input.dbPath}-shm`, snapshotDir, "sqlite-shm"),
       copyIfExists(path.join(input.logsDir, "security-audit.ndjson"), snapshotDir, "security-audit"),
     ].filter((item): item is NonNullable<typeof item> => Boolean(item));
-    manifest = { ...manifest, files, pruned: pruneOldSnapshots(backupRoot, input.now, retentionDays) };
+    const restoreProof = verifySnapshotRestore({
+      snapshotDbPath: files.find((file) => file.key === "sqlite-db")?.target ?? null,
+      checkedAt: input.now,
+    });
+    manifest = { ...manifest, files, pruned: pruneOldSnapshots(backupRoot, input.now, retentionDays), restoreProof };
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+    if (restoreProof.status !== "verified") {
+      throw new Error(restoreProof.error ?? "Snapshot restore proof failed.");
+    }
 
     input.db
       .prepare(

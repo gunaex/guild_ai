@@ -14,11 +14,18 @@ describe("Guild AI backup scheduler", () => {
     const logsDir = path.join(root, "logs");
     const backupDir = path.join(root, "backups");
     const oldDir = path.join(backupDir, "snapshot-old-ecom-001");
-    fs.writeFileSync(dbFile, "sqlite-db");
     fs.mkdirSync(logsDir);
     fs.writeFileSync(path.join(logsDir, "security-audit.ndjson"), "audit");
     fs.mkdirSync(oldDir, { recursive: true });
     fs.utimesSync(oldDir, new Date(0), new Date(0));
+
+    const sourceDb = new DatabaseSync(dbFile);
+    applyBaseSchema(sourceDb);
+    applyGuildAiSchema(sourceDb);
+    sourceDb
+      .prepare("INSERT INTO guild_templates (guild_id, name, business_type, currency, template_json) VALUES (?, ?, ?, ?, ?)")
+      .run("ecom-001", "E-Commerce", "ecommerce", "USD", "{}");
+    sourceDb.close();
 
     const db = new DatabaseSync(":memory:");
     try {
@@ -44,6 +51,7 @@ describe("Guild AI backup scheduler", () => {
 
       expect(result.snapshot.status).toBe("succeeded");
       expect(result.manifest.files.some((file) => file.key === "sqlite-db")).toBe(true);
+      expect(result.manifest.restoreProof?.status).toBe("verified");
       expect(fs.existsSync(oldDir)).toBe(false);
       expect(listGuildBackupSnapshots(db, "ecom-001", 5)).toHaveLength(1);
     } finally {

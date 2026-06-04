@@ -344,7 +344,7 @@ npm run check
 7. ดู `Budget guard` แล้วปรับ daily/monthly budget ได้
 8. ตั้ง daily budget ต่ำกว่าค่าใช้จ่ายวันนี้ แล้วตรวจว่า verdict เป็น `blocked`
 9. ดู `Backup readiness` แล้วกด `Run backup now`
-10. ตรวจว่า `Latest snapshots` มี snapshot ใหม่
+10. ตรวจว่า `Latest snapshots` มี snapshot ใหม่ และ manifest มี restore proof เป็น `verified`
 11. เข้า Settings -> Operations แล้วตรวจ default retention เป็น `14`
 12. ปรับ retention แล้ว save/blur จากนั้นกลับมา Guild AI เพื่อตรวจ retention ที่แสดง
 13. ดู `Real worker queue`
@@ -352,6 +352,7 @@ npm run check
 15. ถ้า Budget Guard blocked ปุ่ม Process next ต้องหยุด/disabled
 16. เพิ่ม budget ให้ไม่ blocked แล้วกด `Process next`
 17. ตรวจ queue item เปลี่ยนเป็น `succeeded`
+18. กด Generate Daily PM report แล้วตรวจว่ามี Backup section / Backup restore status
 
 คำสั่ง verify:
 
@@ -366,6 +367,8 @@ npm run test:api
 - API tests ผ่าน 75 files / 275 tests
 - Secretary overlay ไม่บัง CEO แบบถาวรอีก
 - Backup retention default 14 วัน และปรับได้ใน Settings
+- Backup snapshot ที่ผ่านต้องเปิด SQLite restore proof ได้
+- Daily PM report แสดง backup/restore status
 - Worker queue เคารพ Budget Guard ก่อน process งาน
 
 ## 15. Pass Criteria

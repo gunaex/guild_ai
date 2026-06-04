@@ -219,3 +219,5 @@ Latest result after local-first MVP acceptance:
 - Budget Guard is implemented with daily/monthly policy, hard-stop option, agent spend status, API routes, and Guild AI panel UI.
 - Automatic backup is implemented with daily scheduler, manual run endpoint, snapshot history, default 14-day retention, Settings -> Operations retention control, and `guild-ai-backups/` ignored from git.
 - Real worker queue MVP is implemented with persistent queue storage, enqueue/list/process-next API, Guild AI panel controls, and Budget Guard blocking before processing.
+- Backup snapshots now include restore proof in the manifest and Daily PM reports include backup/restore status.
+- `docs/guild-ai/LEARNING_COMMUNITY.md` captures the Library evolution idea: a Knowledge Steward who spreads useful skills/lessons through the office instead of waiting for passive learning.

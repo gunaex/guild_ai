@@ -1097,6 +1097,7 @@ export default function GuildAiPanel() {
             <Metric label="Report date" value={state.pmDailyReport?.reportDate ?? "-"} />
             <Metric label="Launch score" value={state.pmDailyReport ? `${state.pmDailyReport.summary.launchScore}%` : "-"} />
             <Metric label="Done 24h" value={state.pmDailyReport?.summary.tasks.done24h ?? 0} />
+            <Metric label="Backup restore" value={state.pmDailyReport?.summary.backup.restoreStatus ?? "-"} />
             <Metric
               label="Avg productivity"
               value={

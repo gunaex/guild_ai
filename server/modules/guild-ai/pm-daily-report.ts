@@ -33,6 +33,15 @@ export type GuildPmDailyReportSummary = {
     memoryRecords: number;
     averageProductivityScore: number | null;
   };
+  backup: {
+    latestStatus: "succeeded" | "failed" | "none";
+    latestAt: number | null;
+    retentionDays: number | null;
+    restoreVerified: boolean;
+    restoreStatus: "verified" | "failed" | "unknown";
+    backupDir: string | null;
+    error: string | null;
+  };
   nextActions: string[];
 };
 
@@ -79,6 +88,8 @@ function buildNextActions(input: {
   done24h: number;
   inProgress: number;
   netIncome: number;
+  restoreVerified: boolean;
+  backupStatus: "succeeded" | "failed" | "none";
 }): string[] {
   const actions: string[] = [];
   if (input.launch.status !== "ready_for_today") {
@@ -88,8 +99,62 @@ function buildNextActions(input: {
   if (input.pendingGovernance > 0) actions.push("Resolve pending human governance requests before approving upgrades.");
   if (input.done24h === 0 && input.inProgress === 0) actions.push("Start one safe Guild smoke or production task to keep daily operating evidence fresh.");
   if (input.netIncome < 0) actions.push("Record service revenue or top up pricing data so P&L reflects real customer income.");
+  if (input.backupStatus === "none") actions.push("Run one backup snapshot and verify restore proof before relying on local production data.");
+  if (input.backupStatus === "failed" || !input.restoreVerified) actions.push("Fix backup restore proof before considering the system recoverable.");
   if (actions.length === 0) actions.push("Continue today's local trial and keep the Guild AI panel open for readiness drift.");
   return [...new Set(actions)].slice(0, 6);
+}
+
+function latestBackupStatus(db: DbLike, guildId: string): GuildPmDailyReportSummary["backup"] {
+  const row = db
+    .prepare(
+      `SELECT status, backup_dir, retention_days, manifest_json, error, created_at
+       FROM guild_backup_snapshots
+       WHERE guild_id = ?
+       ORDER BY created_at DESC
+       LIMIT 1`,
+    )
+    .get(guildId) as
+    | {
+        status: "succeeded" | "failed";
+        backup_dir: string;
+        retention_days: number;
+        manifest_json: string;
+        error: string | null;
+        created_at: number;
+      }
+    | undefined;
+  if (!row) {
+    return {
+      latestStatus: "none",
+      latestAt: null,
+      retentionDays: null,
+      restoreVerified: false,
+      restoreStatus: "unknown",
+      backupDir: null,
+      error: null,
+    };
+  }
+
+  let restoreStatus: "verified" | "failed" | "unknown" = "unknown";
+  try {
+    const manifest = JSON.parse(row.manifest_json) as { restoreProof?: { status?: unknown } };
+    if (manifest.restoreProof?.status === "verified" || manifest.restoreProof?.status === "failed") {
+      restoreStatus = manifest.restoreProof.status;
+    }
+  } catch {
+    restoreStatus = "unknown";
+  }
+
+  return {
+    latestStatus: row.status,
+    latestAt: row.created_at,
+    retentionDays: row.retention_days,
+    restoreVerified: row.status === "succeeded" && restoreStatus === "verified",
+    restoreStatus,
+    backupDir: row.backup_dir,
+    error: row.error,
+  };
 }
 
 function renderMarkdown(summary: GuildPmDailyReportSummary): string {
@@ -120,6 +185,13 @@ function renderMarkdown(summary: GuildPmDailyReportSummary): string {
     `- Open advice: ${summary.operations.openAdvice}`,
     `- Memory records: ${summary.operations.memoryRecords}`,
     `- Average productivity score: ${summary.operations.averageProductivityScore ?? "-"}`,
+    "",
+    "## Backup",
+    `- Latest snapshot: ${summary.backup.latestStatus}`,
+    `- Restore proof: ${summary.backup.restoreStatus}`,
+    `- Retention: ${summary.backup.retentionDays ?? "-"} day(s)`,
+    `- Backup dir: ${summary.backup.backupDir ?? "-"}`,
+    ...(summary.backup.error ? [`- Error: ${summary.backup.error}`] : []),
     "",
     "## Next Actions",
     ...summary.nextActions.map((action) => `- ${action}`),
@@ -178,6 +250,7 @@ export function generateGuildPmDailyReport(input: {
     .get(guildId, reportDate) as { average: number | null } | undefined;
   const done24h = count(db, "SELECT COUNT(*) AS count FROM tasks WHERE status = 'done' AND updated_at >= ?", since);
   const inProgress = count(db, "SELECT COUNT(*) AS count FROM tasks WHERE status = 'in_progress'");
+  const backup = latestBackupStatus(db, guildId);
   const summary: GuildPmDailyReportSummary = {
     guildId,
     reportDate,
@@ -213,6 +286,7 @@ export function generateGuildPmDailyReport(input: {
           ? null
           : Math.round(Number(avgProductivityRow.average)),
     },
+    backup,
     nextActions: buildNextActions({
       launch,
       activeLimits,
@@ -220,6 +294,8 @@ export function generateGuildPmDailyReport(input: {
       done24h,
       inProgress,
       netIncome: pnl.netIncome,
+      restoreVerified: backup.restoreVerified,
+      backupStatus: backup.latestStatus,
     }),
   };
   const markdown = renderMarkdown(summary);

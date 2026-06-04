@@ -289,6 +289,15 @@ export type GuildAiPmDailyReport = {
       memoryRecords: number;
       averageProductivityScore: number | null;
     };
+    backup: {
+      latestStatus: "succeeded" | "failed" | "none";
+      latestAt: number | null;
+      retentionDays: number | null;
+      restoreVerified: boolean;
+      restoreStatus: "verified" | "failed" | "unknown";
+      backupDir: string | null;
+      error: string | null;
+    };
     nextActions: string[];
   };
   markdown: string;

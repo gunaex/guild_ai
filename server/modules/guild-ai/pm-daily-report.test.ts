@@ -78,6 +78,17 @@ function seedGuild(db: DatabaseSync, projectPath: string): void {
     1_780_574_000_000,
     1_780_574_000_000,
   );
+  db.prepare(
+    "INSERT INTO guild_backup_snapshots (id, guild_id, backup_dir, retention_days, status, manifest_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+  ).run(
+    "backup-1",
+    "ecom-001",
+    "/tmp/guild-backup/snapshot-1",
+    14,
+    "succeeded",
+    JSON.stringify({ restoreProof: { status: "verified", integrity: "ok", requiredTablesPresent: true } }),
+    1_780_575_000_000,
+  );
 }
 
 function buildLaunch(db: DatabaseSync, root: string) {
@@ -113,6 +124,9 @@ describe("Guild AI PM daily report", () => {
       expect(report.reportDate).toBe("2026-06-04");
       expect(report.summary.launchStatus).toBe("ready_for_today");
       expect(report.summary.finance.revenue).toBe(25);
+      expect(report.summary.backup.restoreVerified).toBe(true);
+      expect(report.markdown).toContain("## Backup");
+      expect(report.markdown).toContain("Restore proof: verified");
       expect(report.markdown).toContain("Guild AI Daily PM Report");
       expect(getLatestGuildPmDailyReport(db, "ecom-001")?.id).toBe(report.id);
       expect(listGuildPmDailyReports(db, "ecom-001")).toHaveLength(1);

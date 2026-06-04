@@ -155,6 +155,8 @@ This local repo currently contains a clean Guild AI scaffold, not the upstream f
 - Added Budget Guard policy/status API and Guild AI panel UI for daily/monthly hard-stop spend control.
 - Added automatic daily backup scheduler with default 14-day retention, configurable Settings -> Operations retention, manual backup run, snapshot history, and generated backup artifact ignore rules.
 - Added real worker queue MVP with persistent queue table, enqueue/list/process-next API, Budget Guard blocking, and Guild AI panel controls.
+- Added backup restore proof verification and Daily PM backup/restore status so snapshots are not trusted unless SQLite restore checks pass.
+- Added Learning Community design note for evolving the Library into an active Knowledge Steward culture loop.
 
 ## Verified
 
