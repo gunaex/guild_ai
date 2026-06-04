@@ -10,7 +10,7 @@ The workspace contains the Guild AI fork built on top of Claw-Empire. The public
 
 Important files:
 
-- `README.md`: setup and migration notes.
+- `README.md`: public Guild AI fork overview, quick start, and upstream Claw-Empire notes.
 - `docs/AUTOSTART.md`: boot/startup setup for notebook and server modes.
 - `docs/ARCHITECTURE.md`: core architecture.
 - `docs/ROADMAP.md`: phase plan.
@@ -102,6 +102,7 @@ git status
 
 It contains the first server-side Guild AI module, auto-seeds the default guild template, and includes the first Guild AI UI panel with governance and accounting workflows.
 Local `main` tracks `origin/main`. The previous shallow upstream-derived branch is preserved locally as `upstream-shallow-main`.
+The root `README.md` now includes the Guild AI quick start: clone, install, build, run `./node_modules/.bin/tsx server/index.ts`, bootstrap Ollama runtime, and run the guarded smoke workflow from the Guild AI panel.
 
 ## Current Best Next Code Change
 
@@ -183,4 +184,5 @@ Latest result after guarded Guild smoke-run execution:
 - Web: 25 test files and 76 tests passed.
 - Build: `npm run build` passed.
 - Public GitHub repo: `origin/main` at `84586ee feat: publish Guild AI fork snapshot`.
+- Public README: Guild AI fork quick start is present at the top of `README.md`.
 - Browser smoke: Guild AI panel opens from sidebar, renders Thai accounting chart, records sample token spend into journal entries, creates upgrade proposals, renders proposal event history, and creates SGM Advisor advice.

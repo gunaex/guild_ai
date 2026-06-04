@@ -43,6 +43,63 @@
 
 ---
 
+## Guild AI Fork
+
+This repository is the Guild AI local-first company fork built on top of Claw-Empire.
+
+Guild AI adds a practical autonomous-organization layer:
+
+- Guild templates with runnable business roles.
+- Local Ollama runtime binding for Guild agents.
+- Thai-style accounting with double-entry journals, P&L, prepaid AI credit tracking, token usage, and service revenue.
+- Self-improvement governance with proposals, human decisions, event history, and SGM Advisor advice.
+- AI model limit governance that pauses only the limited provider/model and keeps other runtimes moving.
+- Guarded scratch task smoke workflows for Worker -> QA -> retry/escalation validation.
+
+Current progress is tracked in [`docs/guild-ai/PROGRESS.md`](docs/guild-ai/PROGRESS.md).
+
+### Guild AI Quick Start
+
+```bash
+git clone https://github.com/gunaex/guild_ai.git
+cd guild_ai
+npm install --package-lock=false
+npm run build
+./node_modules/.bin/tsx server/index.ts
+```
+
+Then open the local web UI and choose `Guild AI` from the sidebar.
+
+For Local Ollama:
+
+```bash
+ollama serve
+ollama pull llama3.1:8b
+```
+
+Use the Guild AI panel actions in this order:
+
+1. `Bootstrap Ollama runtime`
+2. `Run smoke`
+3. `Stage task smoke`
+4. `Run staged smoke`
+
+OAuth app credentials are not embedded in this public fork. Set these only when needed:
+
+```bash
+OAUTH_GITHUB_CLIENT_ID=
+OAUTH_GOOGLE_CLIENT_ID=
+OAUTH_GOOGLE_CLIENT_SECRET=
+```
+
+Key docs:
+
+- [`docs/guild-ai/HANDOVER.md`](docs/guild-ai/HANDOVER.md)
+- [`docs/guild-ai/ROADMAP.md`](docs/guild-ai/ROADMAP.md)
+- [`docs/guild-ai/SPEED_LANE.md`](docs/guild-ai/SPEED_LANE.md)
+
+---
+
 ## What is Claw-Empire?
 
 Claw-Empire transforms your AI coding assistants — connected via **CLI**, **OAuth**, or **direct API keys** — into a fully simulated **virtual software company**. You are the CEO. Your AI agents are the employees. Watch them collaborate across departments, hold meetings, deliver tasks, and level up — all visualized through a charming pixel-art office interface.
