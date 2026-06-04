@@ -4,6 +4,7 @@ import {
   createGuildAiAdvice,
   createGuildAiMemory,
   createGuildAiUpgradeProposal,
+  decideGuildAiGovernanceRequest,
   decideGuildAiUpgrade,
   getGuildAiAccounting,
   getGuildAiBriefing,
@@ -14,6 +15,8 @@ import {
   getGuildAiVisualManifest,
   listGuildAiAccounts,
   listGuildAiAdvice,
+  listGuildAiGovernanceRequests,
+  listGuildAiHrReviews,
   listGuildAiJournal,
   listGuildAiLimitEvents,
   listGuildAiMemories,
@@ -24,6 +27,7 @@ import {
   listGuildAiUpgradeEvents,
   listGuildAiUpgrades,
   recordGuildAiCreditTopup,
+  recordGuildAiHrReview,
   recordGuildAiRevenue,
   recordGuildAiTokenUsage,
   routeGuildAiTask,
@@ -35,6 +39,8 @@ import {
   type GuildAiAccountingSummary,
   type GuildAiAdvice,
   type GuildAiCapability,
+  type GuildAiGovernanceRequest,
+  type GuildAiHrReview,
   type GuildAiUpgradeEvent,
   type GuildAiVisualManifest,
   type GuildAiJournalEntry,
@@ -62,6 +68,8 @@ type LoadState = {
   proposals: GuildAiUpgradeProposal[];
   advice: GuildAiAdvice[];
   memories: GuildAiMemoryRecord[];
+  hrReviews: GuildAiHrReview[];
+  governanceRequests: GuildAiGovernanceRequest[];
   accounts: GuildAiAccount[];
   accountingSummary: GuildAiAccountingSummary | null;
   prepaidAiCreditBalance: number;
@@ -120,6 +128,8 @@ const emptyState: LoadState = {
   proposals: [],
   advice: [],
   memories: [],
+  hrReviews: [],
+  governanceRequests: [],
   accounts: [],
   accountingSummary: null,
   prepaidAiCreditBalance: 0,
@@ -285,6 +295,8 @@ export default function GuildAiPanel() {
   const [pricingForm, setPricingForm] = useState<PricingFormState>(defaultPricingForm);
   const [memoryForm, setMemoryForm] = useState<MemoryFormState>(defaultMemoryForm);
   const [memoryBusy, setMemoryBusy] = useState(false);
+  const [hrReviewBusy, setHrReviewBusy] = useState(false);
+  const [governanceBusyRequestId, setGovernanceBusyRequestId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (guildId: string) => {
@@ -298,6 +310,8 @@ export default function GuildAiPanel() {
         upgrades,
         advice,
         memories,
+        hrReviews,
+        governanceRequests,
         accounts,
         accounting,
         journal,
@@ -313,6 +327,8 @@ export default function GuildAiPanel() {
         listGuildAiUpgrades(guildId),
         listGuildAiAdvice(guildId),
         listGuildAiMemories(guildId, { limit: 8 }),
+        listGuildAiHrReviews(guildId, { limit: 8 }),
+        listGuildAiGovernanceRequests(guildId, { limit: 8 }),
         listGuildAiAccounts(guildId),
         getGuildAiAccounting(guildId),
         listGuildAiJournal(guildId),
@@ -328,6 +344,8 @@ export default function GuildAiPanel() {
         proposals: upgrades.proposals,
         advice: advice.advice,
         memories: memories.records,
+        hrReviews: hrReviews.reviews,
+        governanceRequests: governanceRequests.requests,
         accounts: accounts.accounts,
         accountingSummary: accounting.summary,
         prepaidAiCreditBalance: accounting.prepaidAiCreditBalance,
@@ -497,6 +515,43 @@ export default function GuildAiPanel() {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setMemoryBusy(false);
+    }
+  };
+
+  const recordSampleHrReview = async () => {
+    setHrReviewBusy(true);
+    setError(null);
+    try {
+      await recordGuildAiHrReview({
+        guildId: selectedGuildId,
+        agentId: "worker-001",
+        productivityScore: 42,
+        tokenCostUsd: 1.25,
+      });
+      await load(selectedGuildId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setHrReviewBusy(false);
+    }
+  };
+
+  const decideGovernanceRequest = async (
+    requestId: string,
+    decision: "approved" | "rejected" | "cancelled",
+  ) => {
+    setGovernanceBusyRequestId(requestId);
+    setError(null);
+    try {
+      await decideGuildAiGovernanceRequest(requestId, {
+        decision,
+        note: `SGM ${decision} HR governance request from Guild AI panel.`,
+      });
+      await load(selectedGuildId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setGovernanceBusyRequestId(null);
     }
   };
 
@@ -849,6 +904,87 @@ export default function GuildAiPanel() {
                     <span className="text-[11px] text-slate-500">{formatDate(memory.created_at)}</span>
                   </div>
                   <div className="mt-2 text-sm leading-6 text-slate-200">{memory.content}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-slate-700/70 bg-slate-950/70">
+        <div className="flex flex-col gap-2 border-b border-slate-700/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="font-semibold text-slate-100">HR governance</h3>
+            <p className="mt-0.5 text-xs text-slate-400">Productivity review evidence and human-approved governance requests</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-full border border-slate-700 px-2 py-0.5 text-[11px] text-slate-300">
+              {state.briefing?.metrics.pendingGovernanceRequests ?? 0} pending
+            </span>
+            <button
+              type="button"
+              disabled={hrReviewBusy}
+              onClick={() => void recordSampleHrReview()}
+              className="rounded-md border border-amber-400/40 px-3 py-1.5 text-xs text-amber-100 transition hover:bg-amber-500/10 disabled:opacity-50"
+            >
+              {hrReviewBusy ? "Recording..." : "Record sample HR review"}
+            </button>
+          </div>
+        </div>
+        <div className="grid gap-4 p-4 xl:grid-cols-2">
+          <div className="grid gap-2">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Recent reviews</div>
+            {state.hrReviews.length === 0 ? (
+              <div className="text-sm text-slate-400">No HR reviews recorded.</div>
+            ) : (
+              state.hrReviews.map((review) => (
+                <div key={review.id} className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="text-sm font-medium text-slate-100">{review.agent_id}</div>
+                      <div className="mt-0.5 text-xs text-slate-500">{review.review_date}</div>
+                    </div>
+                    <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(review.productivity_score < 60 ? "needs_info" : "completed")}`}>
+                      score {review.productivity_score}
+                    </span>
+                  </div>
+                  <div className="mt-2 text-xs text-slate-400">token cost: ${review.token_cost_usd.toFixed(2)}</div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="grid gap-2">
+            <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Governance requests</div>
+            {state.governanceRequests.length === 0 ? (
+              <div className="text-sm text-slate-400">No HR governance requests.</div>
+            ) : (
+              state.governanceRequests.map((request) => (
+                <div key={request.id} className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div className="text-sm font-medium text-slate-100">{request.request_type}</div>
+                      <div className="mt-0.5 text-xs text-slate-500">{request.agent_id}</div>
+                    </div>
+                    <span className={`rounded-full border px-2 py-0.5 text-[11px] ${statusClass(request.status)}`}>
+                      {request.status}
+                    </span>
+                  </div>
+                  <div className="mt-2 text-xs leading-5 text-slate-300">{request.reason}</div>
+                  {request.status === "pending" && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(["approved", "rejected", "cancelled"] as const).map((decision) => (
+                        <button
+                          key={decision}
+                          type="button"
+                          disabled={governanceBusyRequestId === request.id}
+                          onClick={() => void decideGovernanceRequest(request.id, decision)}
+                          className="rounded-md border border-slate-700 px-2.5 py-1 text-xs text-slate-200 transition hover:bg-slate-800 disabled:opacity-50"
+                        >
+                          {governanceBusyRequestId === request.id ? "Saving..." : decision}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))
             )}

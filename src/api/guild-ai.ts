@@ -49,6 +49,8 @@ export type GuildAiSgmBriefing = {
     runtimeAvailable: number;
     runtimeLimited: number;
     memoryRecords: number;
+    hrReviews: number;
+    pendingGovernanceRequests: number;
   };
 };
 
@@ -107,6 +109,28 @@ export type GuildAiMemoryRecord = {
   content: string;
   metadata_json: string;
   embedding_ref: string | null;
+  created_at: number;
+};
+
+export type GuildAiHrReview = {
+  id: number;
+  guild_id: string;
+  agent_id: string;
+  productivity_score: number;
+  token_cost_usd: number;
+  review_date: string;
+  created_at: number;
+};
+
+export type GuildAiGovernanceRequest = {
+  id: string;
+  guild_id: string;
+  agent_id: string;
+  request_type: "termination" | "budget_override" | "human_decision" | "capability_upgrade";
+  status: "pending" | "approved" | "rejected" | "cancelled";
+  reason: string;
+  evidence_json: string;
+  decided_at: number | null;
   created_at: number;
 };
 
@@ -431,6 +455,45 @@ export async function createGuildAiMemory(input: {
   metadata?: Record<string, unknown>;
 }): Promise<{ ok: boolean; guildId: string; record: GuildAiMemoryRecord }> {
   return post("/api/guild-ai/memory", input);
+}
+
+export async function listGuildAiHrReviews(
+  guildId: string,
+  input?: { limit?: number },
+): Promise<{ ok: boolean; guildId: string; reviews: GuildAiHrReview[] }> {
+  const limit = input?.limit ?? 20;
+  return request(`/api/guild-ai/hr/${encodeURIComponent(guildId)}/reviews?limit=${encodeURIComponent(limit)}`);
+}
+
+export async function recordGuildAiHrReview(input: {
+  guildId: string;
+  agentId: string;
+  productivityScore: number;
+  tokenCostUsd?: number;
+  reviewDate?: string;
+}): Promise<{
+  ok: boolean;
+  guildId: string;
+  review: GuildAiHrReview;
+  governanceRequest: GuildAiGovernanceRequest | null;
+  productivityFloor: number;
+}> {
+  return post("/api/guild-ai/hr/reviews", input);
+}
+
+export async function listGuildAiGovernanceRequests(
+  guildId: string,
+  input?: { limit?: number },
+): Promise<{ ok: boolean; guildId: string; requests: GuildAiGovernanceRequest[] }> {
+  const limit = input?.limit ?? 20;
+  return request(`/api/guild-ai/governance/${encodeURIComponent(guildId)}/requests?limit=${encodeURIComponent(limit)}`);
+}
+
+export async function decideGuildAiGovernanceRequest(
+  requestId: string,
+  input: { decision: "approved" | "rejected" | "cancelled"; note?: string },
+): Promise<{ ok: boolean; request: GuildAiGovernanceRequest }> {
+  return post(`/api/guild-ai/governance/${encodeURIComponent(requestId)}/decision`, input);
 }
 
 export async function listGuildAiRuntimeBindings(

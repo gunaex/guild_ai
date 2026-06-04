@@ -6,7 +6,7 @@ Last updated: 2026-06-04
 
 Current estimate:
 
-- Full Guild AI vision: 75%
+- Full Guild AI vision: 80%
 - Local-first MVP: 100%
 
 Basis:
@@ -17,7 +17,7 @@ Basis:
 - Self-improvement governance: 72%
 - Local Ollama/runtime binding: 85%
 - Real task execution under Guild control: 90%
-- HR governance: 20%
+- HR governance: 50%
 - Memory L2/L3 and external tools: 45%
 - LAN/internet hardened deployment: 30%
 - Dual visual layer and long-running dashboards: 35%
@@ -137,6 +137,7 @@ This local repo currently contains a clean Guild AI scaffold, not the upstream f
 - Verified `npm run guild:mvp-check` against the live local server: 10/10 gates passed.
 - Added Guild AI SQLite L2 memory records with manual memory capture, namespace filtering, API routes, UI panel, and SGM briefing memory readiness.
 - Upgrade proposals, upgrade decisions, SGM advice, and service revenue now create durable memory records automatically so governance/accounting context survives reloads and future runs.
+- Added HR governance foundation with productivity reviews, below-floor termination governance requests, human decision routes, UI controls, SGM readiness metrics, and automatic memory capture.
 
 ## Verified
 
@@ -180,6 +181,10 @@ Verified fork routes:
 - `GET /api/guild-ai/advice/ecom-001`
 - `GET /api/guild-ai/memory/ecom-001`
 - `POST /api/guild-ai/memory`
+- `GET /api/guild-ai/hr/ecom-001/reviews`
+- `POST /api/guild-ai/hr/reviews`
+- `GET /api/guild-ai/governance/ecom-001/requests`
+- `POST /api/guild-ai/governance/:requestId/decision`
 - `GET /api/guild-ai/accounting/ecom-001/accounts`
 - `POST /api/guild-ai/accounting/token-usage`
 - `POST /api/guild-ai/accounting/ai-credit-topup`
@@ -205,9 +210,10 @@ Latest fork test result:
 - Build: `npm run build` passed.
 - Local MVP acceptance: `npm run guild:mvp-check` passed, 10/10 gates.
 - L2 memory: targeted tests for `server/modules/guild-ai/memory.test.ts` and `server/modules/guild-ai/briefing.test.ts` passed.
+- HR governance: targeted tests for `server/modules/guild-ai/hr-governance.test.ts` and `server/modules/guild-ai/briefing.test.ts` passed.
 - Public repo publish: `origin/main` points at `84586ee feat: publish Guild AI fork snapshot`; local docs/README follow-up commits are ready to push.
 - Browser smoke: Guild AI panel visible, Thai accounting chart rendered, sample token spend produced a journal entry, upgrade proposal creation worked, proposal event history rendered, and SGM Advisor advice creation worked.
-- Latest code verification also covered SQLite L2 memory capture/listing/briefing readiness, service revenue journal entries, prepaid AI credit top-ups, prepaid credit balance reduction from token usage, API provider prepaid/fallback payment selection, AI provider/model limit event capture, active-limit pause behavior, runtime binding availability display, SGM runtime readiness metrics and readiness checklist, available-binding selection for smoke and route decisions, guarded staged-smoke execution from the Guild AI panel, scratch smoke brief/result files, scratch artifact API/UI visibility, recent smoke task recovery after reload, smoke result fallback recording from provider output, real Local Ollama Worker smoke execution routed to QA, smoke QA evidence gating and done closure, UI evidence status/qa_pass disabling, local MVP acceptance checker, execution-start preflight switching/blocking for limited Guild runtimes, same-role fallback routing, automatic recovery after cooldown expiry, public-safe OAuth env configuration, GitHub repo publication, README quick start, Guild-aware task route decisions wired into run completion and QA review outcomes, Guild task route UI controls and task log visibility, P&L income calculation, API provider streaming usage parsing, Ollama auto-configuration, Guild runtime binding selection, real Local Ollama runtime bootstrap, and direct-chat token usage capture.
+- Latest code verification also covered HR productivity review and human governance decision gates, SQLite L2 memory capture/listing/briefing readiness, service revenue journal entries, prepaid AI credit top-ups, prepaid credit balance reduction from token usage, API provider prepaid/fallback payment selection, AI provider/model limit event capture, active-limit pause behavior, runtime binding availability display, SGM runtime readiness metrics and readiness checklist, available-binding selection for smoke and route decisions, guarded staged-smoke execution from the Guild AI panel, scratch smoke brief/result files, scratch artifact API/UI visibility, recent smoke task recovery after reload, smoke result fallback recording from provider output, real Local Ollama Worker smoke execution routed to QA, smoke QA evidence gating and done closure, UI evidence status/qa_pass disabling, local MVP acceptance checker, execution-start preflight switching/blocking for limited Guild runtimes, same-role fallback routing, automatic recovery after cooldown expiry, public-safe OAuth env configuration, GitHub repo publication, README quick start, Guild-aware task route decisions wired into run completion and QA review outcomes, Guild task route UI controls and task log visibility, P&L income calculation, API provider streaming usage parsing, Ollama auto-configuration, Guild runtime binding selection, real Local Ollama runtime bootstrap, and direct-chat token usage capture.
 
 ## Known Notes
 
@@ -229,8 +235,9 @@ Next code step inside `worktrees/guild-ai-claw-fork`:
 2. Keep the fork runtime running locally and use `npm run guild:mvp-check` as the acceptance gate after changes.
 3. Connect real sales/service income events into `POST /api/guild-ai/accounting/revenue`.
 4. Start using SQLite L2 memory as the source for SGM continuity notes, then add optional Chroma L3 retrieval later.
-5. Split the growing `GuildAiPanel` into smaller components once the MVP workflows settle.
-6. Move from local-first MVP to LAN/autostart hardening without exposing dev servers directly to the internet.
+5. Expand HR governance from sample reviews into daily productivity scoring and replacement persona proposals.
+6. Split the growing `GuildAiPanel` into smaller components once the MVP workflows settle.
+7. Move from local-first MVP to LAN/autostart hardening without exposing dev servers directly to the internet.
 
 Speed rule:
 

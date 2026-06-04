@@ -23,6 +23,7 @@ Guild AI ตอนนี้คือบริษัท AI local-first ที่�
 - มี self-improvement proposal และ SGM Advisor advice
 - มี model limit governance เพื่อหยุดเฉพาะ model/provider ที่ติด limit
 - มี L2 memory แบบ SQLite สำหรับจำ operating notes, advice, decisions, และ accounting context
+- มี HR governance review และ human decision gate ก่อน termination/replacement
 
 คิดง่ายๆ คือ ตอนนี้เรามี "บริษัท AI local ตัวแรก" ที่ใช้ทดสอบงาน, governance, accounting, และ runtime control ได้แล้ว
 
@@ -121,6 +122,12 @@ Guild AI local MVP check: PASS (10/10)
    - แยก namespace เช่น operations, governance, accounting, runtime, customer, learning
    - ระบบ auto-capture บางเหตุการณ์ เช่น proposal, decision, advice, revenue
    - ใช้เป็นฐานก่อนต่อ ChromaDB L3 memory ภายหลัง
+
+10. HR Governance
+   - บันทึก productivity review
+   - ถ้าคะแนนต่ำกว่าพื้นฐาน ระบบสร้าง governance request
+   - termination/replacement ต้องรอ human decision
+   - decision ถูกบันทึกกลับเข้า memory/governance trail
 
 ## 5. Workflow แรกที่ควรลอง
 
@@ -381,9 +388,10 @@ git push
 8. ใช้เก็บ upgrade proposal
 9. ใช้รับคำแนะนำจาก SGM Advisor
 10. ใช้บันทึก L2 memory เพื่อให้ guild จำบริบทสำคัญ
-11. ใช้เก็บ model limit events เพื่อคุมต้นทุน
-12. ใช้เป็นฐานสำหรับ LAN/autostart
-13. ใช้เป็นฐานต่อ ChromaDB L3 memory ในอนาคต
+11. ใช้บันทึก HR review และ human governance decision
+12. ใช้เก็บ model limit events เพื่อคุมต้นทุน
+13. ใช้เป็นฐานสำหรับ LAN/autostart
+14. ใช้เป็นฐานต่อ ChromaDB L3 memory ในอนาคต
 
 ## 12. สิ่งที่ยังไม่ควรทำ
 

@@ -12,6 +12,12 @@ import {
   upsertModelPricing,
 } from "../guild-ai/accounting-journal.ts";
 import { buildGuildSgmBriefing } from "../guild-ai/briefing.ts";
+import {
+  decideGuildGovernanceRequest,
+  listGuildGovernanceRequests,
+  listGuildHrReviews,
+  recordGuildHrReview,
+} from "../guild-ai/hr-governance.ts";
 import { seedStarterChartOfAccounts, THAI_ACCOUNTING_CATEGORIES } from "../guild-ai/accounting.ts";
 import { listAiLimitEvents } from "../guild-ai/limit-events.ts";
 import { isGuildMemoryNamespace, listGuildMemories, recordGuildMemory } from "../guild-ai/memory.ts";
@@ -62,6 +68,10 @@ function isAdvicePriority(value: string): boolean {
 
 function isTaskRouteDecision(value: string): value is GuildTaskRouteDecision {
   return ["worker_done", "qa_pass", "qa_fail", "techlead_escalate"].includes(value);
+}
+
+function isGovernanceDecision(value: string): value is "approved" | "rejected" | "cancelled" {
+  return ["approved", "rejected", "cancelled"].includes(value);
 }
 
 export function registerGuildAiRoutes(ctx: RuntimeContext): void {
@@ -626,6 +636,84 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
         createdAt: nowMs(),
       });
       res.json({ ok: true, guildId, record });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.get("/api/guild-ai/hr/:guildId/reviews", (req, res) => {
+    const guildId = req.params.guildId;
+    res.json({
+      ok: true,
+      guildId,
+      reviews: listGuildHrReviews(db, guildId, asNonNegativeNumber(req.query.limit, 20)),
+    });
+  });
+
+  app.post("/api/guild-ai/hr/reviews", (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    const guildId = asText(body.guildId);
+    const agentId = asText(body.agentId);
+    if (!guildId || !agentId) {
+      res.status(400).json({ ok: false, error: "guildId and agentId are required." });
+      return;
+    }
+
+    try {
+      const result = recordGuildHrReview(db, {
+        guildId,
+        agentId,
+        productivityScore: asNonNegativeNumber(body.productivityScore),
+        tokenCostUsd: asNonNegativeNumber(body.tokenCostUsd),
+        reviewDate: asText(body.reviewDate) || undefined,
+        createdAt: nowMs(),
+      });
+      recordGuildMemory(db, {
+        guildId,
+        namespace: "governance",
+        content: `HR review: ${agentId} scored ${result.review.productivity_score} with floor ${result.productivityFloor}.`,
+        metadata: {
+          sourceType: "hr_review",
+          reviewId: result.review.id,
+          agentId,
+          governanceRequestId: result.governanceRequest?.id ?? null,
+        },
+        createdAt: nowMs(),
+      });
+      res.json({ ok: true, guildId, ...result });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.get("/api/guild-ai/governance/:guildId/requests", (req, res) => {
+    const guildId = req.params.guildId;
+    res.json({
+      ok: true,
+      guildId,
+      requests: listGuildGovernanceRequests(db, guildId, asNonNegativeNumber(req.query.limit, 20)),
+    });
+  });
+
+  app.post("/api/guild-ai/governance/:requestId/decision", (req, res) => {
+    const requestId = req.params.requestId;
+    const body = req.body as Record<string, unknown>;
+    const decision = asText(body.decision);
+    if (!isGovernanceDecision(decision)) {
+      res.status(400).json({ ok: false, error: "decision must be approved, rejected, or cancelled." });
+      return;
+    }
+
+    try {
+      const request = decideGuildGovernanceRequest(db, { requestId, decision, decidedAt: nowMs() });
+      recordGuildMemory(db, {
+        guildId: request.guild_id,
+        namespace: "governance",
+        content: `Governance decision: ${decision} ${request.request_type} request for ${request.agent_id}.`,
+        metadata: { sourceType: "governance_decision", requestId, decision, note: asText(body.note) || null },
+        createdAt: nowMs(),
+      });
+      res.json({ ok: true, request });
     } catch (err) {
       res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
     }

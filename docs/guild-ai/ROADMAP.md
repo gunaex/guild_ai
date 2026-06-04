@@ -110,10 +110,11 @@ bash scripts/bootstrap-claw-fork.sh ../guild-ai-claw-fork
 
 ## Phase 3 - HR Governance
 
-Status: planned.
+Status: active foundation.
 
 - Daily productivity scoring.
-- Human approval modal for termination requests.
+- Productivity reviews and below-floor termination governance requests.
+- Human approval controls for termination/replacement requests.
 - Replacement agent persona generation.
 - Link HR evidence into governance requests and upgrade decisions.
 

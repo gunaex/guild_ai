@@ -17,7 +17,7 @@ export type GuildSgmBriefing = {
     priority: "low" | "medium" | "high";
   }>;
   readiness: Array<{
-    key: "runtime" | "limits" | "smoke" | "accounting" | "governance" | "memory";
+    key: "runtime" | "limits" | "smoke" | "accounting" | "governance" | "memory" | "hr";
     label: string;
     status: "ready" | "action_needed" | "watch";
     detail: string;
@@ -30,6 +30,8 @@ export type GuildSgmBriefing = {
     runtimeAvailable: number;
     runtimeLimited: number;
     memoryRecords: number;
+    hrReviews: number;
+    pendingGovernanceRequests: number;
   };
 };
 
@@ -77,11 +79,18 @@ export function buildGuildSgmBriefing(db: DbLike, guildId: string, generatedAt: 
     )
     .get(`%"guildId":"${guildId}"%`) as { count: number } | undefined;
   const memoryRecords = countGuildMemories(db as any, guildId);
+  const hrReviewCount = db
+    .prepare("SELECT COUNT(*) AS count FROM guild_hr_reviews WHERE guild_id = ?")
+    .get(guildId) as { count: number } | undefined;
+  const pendingGovernanceRequests = db
+    .prepare("SELECT COUNT(*) AS count FROM guild_governance_requests WHERE guild_id = ? AND status = 'pending'")
+    .get(guildId) as { count: number } | undefined;
+  const pendingHrRequests = pendingGovernanceRequests?.count ?? 0;
 
   const status =
     manifest.actors.length === 0
       ? "warming_up"
-      : manifest.governance.pendingUpgrades > 0
+      : manifest.governance.pendingUpgrades > 0 || pendingHrRequests > 0
         ? "needs_decision"
         : manifest.accounting.netIncome < 0
           ? "watch_cost"
@@ -93,6 +102,7 @@ export function buildGuildSgmBriefing(db: DbLike, guildId: string, generatedAt: 
     `P&L: revenue $${manifest.accounting.revenue.toFixed(2)}, expenses $${manifest.accounting.expenses.toFixed(2)}, net $${manifest.accounting.netIncome.toFixed(2)}.`,
     `Tasks: ${manifest.tasks.planned} planned, ${manifest.tasks.inProgress} in progress, ${manifest.tasks.review} in review.`,
     `Memory: ${memoryRecords} SQLite L2 record${memoryRecords === 1 ? "" : "s"} captured for this guild.`,
+    `HR: ${hrReviewCount?.count ?? 0} review${(hrReviewCount?.count ?? 0) === 1 ? "" : "s"}, ${pendingHrRequests} pending governance request${pendingHrRequests === 1 ? "" : "s"}.`,
   ];
   if (blockedRoles.length > 0) bullets.push(`Blocked roles without available runtime: ${blockedRoles.join(", ")}.`);
   if (latestUpgrade?.title) bullets.push(`Pending upgrade: ${latestUpgrade.title}.`);
@@ -105,6 +115,9 @@ export function buildGuildSgmBriefing(db: DbLike, guildId: string, generatedAt: 
   }
   if (manifest.governance.pendingUpgrades > 0) {
     nextActions.push({ key: "review_upgrades", label: "Review pending upgrade proposals", priority: "high" });
+  }
+  if (pendingHrRequests > 0) {
+    nextActions.push({ key: "review_hr_governance", label: "Review pending HR governance requests", priority: "high" });
   }
   if (blockedRoles.length > 0) {
     nextActions.push({ key: "restore_runtime", label: "Restore runtime availability for blocked roles", priority: "high" });
@@ -178,6 +191,17 @@ export function buildGuildSgmBriefing(db: DbLike, guildId: string, generatedAt: 
           ? `${memoryRecords} durable SQLite memory record${memoryRecords === 1 ? "" : "s"} available.`
           : "Capture advice, decisions, revenue context, or operating notes as durable memory.",
     },
+    {
+      key: "hr",
+      label: "HR governance",
+      status: pendingHrRequests > 0 ? "action_needed" : (hrReviewCount?.count ?? 0) > 0 ? "ready" : "watch",
+      detail:
+        pendingHrRequests > 0
+          ? `${pendingHrRequests} HR governance request${pendingHrRequests === 1 ? "" : "s"} awaiting human decision.`
+          : (hrReviewCount?.count ?? 0) > 0
+            ? `${hrReviewCount?.count ?? 0} HR review${(hrReviewCount?.count ?? 0) === 1 ? "" : "s"} recorded.`
+            : "Record HR reviews before allowing replacement or termination decisions.",
+    },
   ];
 
   const headline =
@@ -205,6 +229,8 @@ export function buildGuildSgmBriefing(db: DbLike, guildId: string, generatedAt: 
       runtimeAvailable,
       runtimeLimited,
       memoryRecords,
+      hrReviews: hrReviewCount?.count ?? 0,
+      pendingGovernanceRequests: pendingHrRequests,
     },
   };
 }
