@@ -149,6 +149,7 @@ This local repo currently contains a clean Guild AI scaffold, not the upstream f
 - Added optional Chroma L3 memory adapter status plus RAG query endpoint with SQLite L2 fallback when Chroma is disabled or offline.
 - Added audit replay timeline API for tasks, task logs, accounting journals, model limits, HR reviews, memory, and governance requests.
 - Added visual bridge snapshot API for external Phaser/pixel renderers with sequence and recommended polling cadence.
+- Added upstream sync guard documentation and `npm run guild:upstream-impact` so future Claw-Empire upgrades are reviewed before they can impact Guild AI integrations.
 
 ## Verified
 

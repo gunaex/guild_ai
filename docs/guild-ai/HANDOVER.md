@@ -19,6 +19,7 @@ Important files:
 - `docs/FORK_STRATEGY.md`: how to move to the upstream fork path.
 - `docs/MEMORY_STRATEGY.md`: SQLite vs ChromaDB decision.
 - `docs/UPSTREAM_ANALYSIS.md`: exact map for porting Guild AI into Claw-Empire.
+- `docs/guild-ai/UPSTREAM_SYNC.md`: safe upstream upgrade review process.
 - `templates/ecommerce.guild.json`: first reusable guild template.
 
 ## Run Locally
@@ -112,6 +113,7 @@ The full Guild AI vision is now estimated at 100% for the current testable targe
 Daily PM reports now exist as a low-token operating heartbeat: `GET /api/guild-ai/reports/:guildId/daily/latest`, `GET /api/guild-ai/reports/:guildId/daily`, and `POST /api/guild-ai/reports/:guildId/daily/generate`. The server scheduler generates reports at 08:00 Asia/Bangkok unless `GUILD_AI_PM_REPORT_SCHEDULER=0`.
 `npm run guild:doctor` now checks launch readiness gates, SGM briefing, active model limits, latest PM report, and local Ollama availability in one command.
 Production-grade long-term target is now implemented for the current architecture: real daily productivity scoring (`POST /api/guild-ai/hr/:guildId/score-daily`), multi-guild template seeds (`ecom-001`, `software-001`, `content-001`), optional Chroma L3 status/RAG fallback, audit replay timeline, and visual bridge snapshot for Phaser/pixel renderers.
+Upstream Claw-Empire upgrades can affect Guild AI integration points. Use `docs/guild-ai/UPSTREAM_SYNC.md` and `npm run guild:upstream-impact` before merging any future `upstream/main` changes.
 
 ## Current Best Next Code Change
 
