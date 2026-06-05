@@ -6,6 +6,7 @@ import type { Socket } from "node:net";
 
 const apiTarget = process.env.VITE_API_PROXY_TARGET ?? "http://127.0.0.1:8790";
 const wsTarget = process.env.VITE_WS_PROXY_TARGET ?? apiTarget.replace(/^http/i, "ws");
+const lanDev = process.env.GUILD_AI_LAN_DEV === "1";
 
 type ProxyErrorResponse = ServerResponse<IncomingMessage> | Socket;
 type ProxyLike = {
@@ -57,7 +58,7 @@ const manualChunks = (id: string): string | undefined => {
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
-    allowedHosts: [".ts.net"],
+    allowedHosts: lanDev ? true : [".ts.net"],
     watch: {
       ignored: ["**/.climpire-worktrees/**"],
     },
