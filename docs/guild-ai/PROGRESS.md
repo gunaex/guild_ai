@@ -160,6 +160,7 @@ This local repo currently contains a clean Guild AI scaffold, not the upstream f
 - Added Community Lounge implementation: break/idle/available agent participants, session/message storage, Knowledge Steward facilitator output, learning memory capture, SGM advice creation, Guild AI panel controls, and Daily PM community evidence.
 - Added internal quality-control infrastructure before external L3 RAG: core stability API, deterministic eval cases/runs, memory quality lifecycle, prompt/policy versioning, unified review queue, SQLite MemoryProvider interface, and `guild:doctor` core stability output.
 - Added `npm run guild:bct`, a 16-stage Business Continuity Test that verifies original Claw-Empire task lifecycle, Guild AI templates/runtime bindings, optional local Ollama, worker queue, Guild-aware routing, accounting/Budget Guard, memory provider, evals, prompt/policy versions, review queue, governance, audit replay, backup readiness, security readiness, and Community Lounge evidence.
+- Planned next week's new local AI server migration: prepare server, restore verified backup, rebind Ollama/runtime roles, run `guild:bct`/`guild:mvp-check`/`guild:doctor`, then enable LAN/autostart only after acceptance passes.
 
 ## Verified
 
@@ -293,7 +294,8 @@ Next code step inside `worktrees/guild-ai-claw-fork`:
 3. For today's test, open the Guild AI panel, check Final launch readiness, generate the Daily PM report, run `Score today`, then run `npm run guild:mvp-check` and `npm run guild:doctor`.
 4. Restart the fork runtime once so the new bundled `software-001` and `content-001` templates auto-seed into the live DB.
 5. For internet/LAN use, keep deployment readiness green and run dependency/security audit before exposing beyond loopback.
-6. Future polish: richer Phaser renderer, deeper Chroma embedding upsert/query, replacement persona generation, and component splitting for `GuildAiPanel`.
+6. Prepare the new local AI server migration using `docs/guild-ai/ROADMAP.md` Phase 2.5 and `docs/guild-ai/TEST_PLAN.md` section 17.
+7. Future polish: richer Phaser renderer, deeper Chroma embedding upsert/query, replacement persona generation, and component splitting for `GuildAiPanel`.
 
 Speed rule:
 

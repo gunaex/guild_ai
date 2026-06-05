@@ -118,6 +118,75 @@ bash scripts/bootstrap-claw-fork.sh ../guild-ai-claw-fork
 - Escalate repeated failure to Tech Lead and PM with accounting/governance evidence.
 - Deployment readiness API and panel gate local/LAN/internet exposure before operators bind services outside loopback.
 
+## Phase 2.5 - New Local AI Server Migration
+
+Status: planned for next week.
+
+Goal:
+
+Move Guild AI from the current notebook/workstation runtime to a dedicated local AI server while preserving local-first operation, LAN access, SQLite data, Ollama/runtime bindings, backups, and BCT evidence.
+
+Migration plan:
+
+1. Prepare the new server
+   - Install Node.js 22+.
+   - Install `npm`/`pnpm` as available.
+   - Install Git.
+   - Install Ollama.
+   - Pull required local models.
+   - Confirm GPU/CPU availability and disk capacity.
+
+2. Clone and configure Guild AI
+   - Clone `https://github.com/gunaex/guild_ai.git`.
+   - Install dependencies.
+   - Copy `.env` values without committing secrets.
+   - Set a strong `API_AUTH_TOKEN`.
+   - Configure `GUILD_AI_BACKUP_DIR`.
+   - Keep `HOST=127.0.0.1` for first local verification.
+
+3. Move operating data safely
+   - Run manual backup on the current machine.
+   - Verify restore proof before trusting the backup.
+   - Copy SQLite DB, WAL/SHM sidecars when needed, logs, and backup manifests.
+   - Start the new server against copied data.
+   - Confirm `guild_backup_snapshots` and latest restore proof are visible.
+
+4. Rebind local runtime
+   - Start Ollama on the new server.
+   - Confirm `http://127.0.0.1:11434/v1/models` returns local models.
+   - Run Ollama bootstrap from Guild AI.
+   - Verify runtime bindings for `pm`, `techLead`, `worker`, `qa`, `hr`, and `accounting`.
+   - Run read-only runtime smoke.
+   - Run staged Worker smoke with `SMOKE_RESULT.md` evidence.
+
+5. Enable LAN access only after local acceptance
+   - Run `npm run guild:bct`.
+   - Run `npm run guild:mvp-check`.
+   - Run `npm run guild:doctor`.
+   - Bind UI/API to LAN only after the above passes.
+   - Use firewall rules to allow only trusted LAN clients.
+   - Do not expose the dev server to the internet.
+
+6. Autostart and operations
+   - Add systemd user service only after acceptance passes.
+   - Confirm daily PM report scheduler.
+   - Confirm automatic daily backup and 14-day retention.
+   - Confirm Daily PM report includes backup/restore status.
+   - Document the new server LAN URL and recovery command.
+
+Acceptance gates before cutover:
+
+- `npm run build` passes.
+- `npm run test:api` passes.
+- `npm run guild:bct` passes 16/16 stages.
+- `npm run guild:mvp-check` passes 10/10 gates.
+- `npm run guild:doctor` has no `FAIL`.
+- Guild AI panel opens from the server itself.
+- LAN client can open the UI through the approved LAN URL.
+- Ollama local runtime smoke passes or is explicitly documented as skipped.
+- Latest backup snapshot has verified restore proof.
+- Rollback path is documented: return to current machine using the last verified backup.
+
 ## Phase 3 - HR Governance
 
 Status: production-grade foundation active; Daily PM reports and real scoring are scheduled/available.

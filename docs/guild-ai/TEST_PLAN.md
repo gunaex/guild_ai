@@ -418,6 +418,104 @@ npm run guild:bct
 6. เพิ่ม memory L2/L3 โดยให้ ChromaDB ยังเป็น optional
 7. ทำ production security controls ก่อนเปิดใช้งานนอกเครื่อง
 
+## 17. New Local AI Server Migration Test Plan
+
+ใช้แผนนี้สัปดาห์หน้าตอนย้าย Guild AI ไปเครื่อง local AI server ใหม่
+
+### Step 1: Current Machine Backup
+
+1. เปิด Guild AI panel
+2. กด `Run backup now`
+3. ตรวจว่า backup status เป็น succeeded
+4. ตรวจว่า restore proof เป็น verified
+5. จด path ของ backup snapshot ล่าสุด
+
+### Step 2: New Server Setup
+
+1. ติดตั้ง Node.js 22+
+2. ติดตั้ง Git
+3. ติดตั้ง Ollama
+4. Pull local model ที่จะใช้จริง
+5. Clone repo:
+
+```bash
+git clone https://github.com/gunaex/guild_ai.git
+cd guild_ai
+npm install
+```
+
+### Step 3: Restore Data
+
+1. Copy SQLite DB และไฟล์ backup/log ที่จำเป็นจากเครื่องเดิม
+2. ตั้งค่า `.env` โดยไม่ commit secrets
+3. ตั้ง `API_AUTH_TOKEN` ให้ strong
+4. ตั้ง `GUILD_AI_BACKUP_DIR`
+5. Start แบบ local ก่อน ห้ามเปิด LAN ทันที
+
+### Step 4: Local Acceptance
+
+```bash
+npm run build
+npm run test:api
+npm run guild:bct
+npm run guild:mvp-check
+npm run guild:doctor
+```
+
+ผ่านเมื่อ:
+
+- BCT ได้ 16/16
+- MVP check ได้ 10/10
+- doctor ไม่มี `FAIL`
+- backup/restore proof ยังเห็นใน Daily PM หรือ backup panel
+
+### Step 5: Runtime Rebinding
+
+1. เปิด Ollama บน server ใหม่
+2. ตรวจ model endpoint:
+
+```bash
+curl http://127.0.0.1:11434/v1/models
+```
+
+3. เปิด Guild AI panel
+4. กด Ollama bootstrap
+5. ตรวจ runtime bindings ทุก role
+6. Run runtime smoke
+7. Stage task smoke
+8. Run staged smoke
+9. ตรวจ `SMOKE_RESULT.md`
+10. QA pass หลัง evidence พร้อม
+
+### Step 6: LAN Cutover
+
+หลัง local acceptance ผ่านเท่านั้น:
+
+```bash
+npm run dev:lan
+```
+
+เปิดจากเครื่องอื่นใน LAN:
+
+```text
+http://<new-server-lan-ip>:8800
+```
+
+ถ้าเข้าไม่ได้ ให้ตรวจ firewall เฉพาะ subnet ที่ไว้ใจ:
+
+```bash
+sudo ufw allow from <trusted-lan-subnet> to any port 8800 proto tcp
+```
+
+### Step 7: Rollback
+
+ถ้า server ใหม่ไม่ผ่าน acceptance:
+
+1. หยุด server ใหม่
+2. กลับมาใช้เครื่องเดิม
+3. ใช้ backup snapshot ล่าสุดที่ restore proof verified
+4. ห้ามลบเครื่องเดิมจนกว่า server ใหม่ผ่าน BCT/MVP/doctor ติดต่อกันอย่างน้อย 2 รอบ
+
 ## 17. Quick Checklist
 
 ใช้ checklist นี้ทุกครั้งก่อนบอกว่า build ปัจจุบันพร้อมใช้งาน:

@@ -48,6 +48,18 @@ Minimum requirements before LAN exposure:
 - Keep DB under `./data` or another backed-up local path.
 - Use firewall rules to allow only trusted LAN clients.
 
+## New Local AI Server Migration
+
+Planned for next week.
+
+Use `docs/guild-ai/ROADMAP.md` Phase 2.5 and `docs/guild-ai/TEST_PLAN.md` section 17 as the migration checklist.
+
+Cutover rule:
+
+- Do not move daily operation to the new server until `npm run guild:bct`, `npm run guild:mvp-check`, and `npm run guild:doctor` pass on the new server.
+- Do not delete or stop relying on the current machine until the new server has a verified restore-proof backup and at least one successful LAN client test.
+- Keep rollback simple: return to the current machine using the latest backup snapshot whose restore proof is verified.
+
 ## Run On Internet
 
 Do not expose raw dev servers directly.
