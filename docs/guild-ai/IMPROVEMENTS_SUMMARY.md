@@ -476,7 +476,46 @@ Implemented without OpenJarvis, Qdrant, or new Chroma runtime dependencies:
 
 This layer makes Guild AI safer before deeper autonomy: behavior can be benchmarked, memory can be reviewed, prompt/policy changes can be versioned, and human review items can be seen in one place.
 
-## 30. Current Note: Guild AI White Screen
+## 30. Business Continuity Test Runner
+
+Added `npm run guild:bct`, an automated Business Continuity Test for release verification.
+
+The BCT proves original Claw-Empire behavior and Guild AI extensions can coexist in one local-first operating flow.
+
+Implemented:
+
+- 16-stage local-first BCT runner at `server/scripts/guild-bct.ts`
+- original Claw-Empire task lifecycle smoke
+- Guild template and runtime binding verification
+- optional Ollama smoke with safe skip/warn behavior when unavailable
+- worker queue lifecycle test
+- deterministic Guild-aware QA routing test
+- Thai accounting and Budget Guard test
+- SQLite memory and MemoryProvider test
+- deterministic eval/benchmark test
+- prompt and policy versioning lifecycle test
+- unified human review queue lifecycle test
+- HR/self-improvement governance summary
+- audit replay verification with BCT trace evidence
+- backup and restore-readiness summary
+- security/deployment readiness summary
+- Community Lounge / Knowledge Steward workflow test
+- markdown and JSON artifacts:
+  - `artifacts/guild-bct/BCT_RESULT.md`
+  - `artifacts/guild-bct/BCT_RESULT.json`
+
+Latest known result:
+
+```text
+npm run guild:bct
+PASS: 16
+WARN: 0
+FAIL: 0
+SKIPPED: 0
+OVERALL: PASS
+```
+
+## 31. Current Note: Guild AI White Screen
 
 If the Guild AI screen turns white after clicking it, first make sure the latest local commit is running.
 

@@ -25,6 +25,7 @@
     "preflight:public": "bash scripts/preflight-public.sh",
     "audit:verify": "node scripts/verify-security-audit-log.mjs",
     "guild:doctor": "node scripts/qa/guild-ai-doctor.mjs",
+    "guild:bct": "tsx server/scripts/guild-bct.ts",
     "guild:upstream-impact": "node scripts/qa/guild-ai-upstream-impact.mjs",
     "guild:mvp-check": "node scripts/qa/guild-ai-local-mvp-check.mjs",
     "test:comm:llm": "node scripts/qa/llm-comm-test.mjs",

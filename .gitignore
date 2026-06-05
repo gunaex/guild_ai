@@ -3,6 +3,7 @@ dist/
 *.tsbuildinfo
 
 # Runtime artifacts
+artifacts/guild-bct/
 logs/
 data/
 guild-ai-backups/

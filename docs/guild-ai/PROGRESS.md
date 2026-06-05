@@ -159,6 +159,7 @@ This local repo currently contains a clean Guild AI scaffold, not the upstream f
 - Added Learning Community design note for evolving the Library into an active Knowledge Steward culture loop.
 - Added Community Lounge implementation: break/idle/available agent participants, session/message storage, Knowledge Steward facilitator output, learning memory capture, SGM advice creation, Guild AI panel controls, and Daily PM community evidence.
 - Added internal quality-control infrastructure before external L3 RAG: core stability API, deterministic eval cases/runs, memory quality lifecycle, prompt/policy versioning, unified review queue, SQLite MemoryProvider interface, and `guild:doctor` core stability output.
+- Added `npm run guild:bct`, a 16-stage Business Continuity Test that verifies original Claw-Empire task lifecycle, Guild AI templates/runtime bindings, optional local Ollama, worker queue, Guild-aware routing, accounting/Budget Guard, memory provider, evals, prompt/policy versions, review queue, governance, audit replay, backup readiness, security readiness, and Community Lounge evidence.
 
 ## Verified
 
@@ -261,6 +262,7 @@ Latest fork test result:
 - Build: `npm run build` passed.
 - Local MVP acceptance: `npm run guild:mvp-check` passed, 10/10 gates.
 - Guild doctor latest: PASS 33/33, core stability score 93, watch=5.
+- Guild BCT latest: PASS 16/16 stages, artifacts written to `artifacts/guild-bct/BCT_RESULT.md` and `artifacts/guild-bct/BCT_RESULT.json`.
 - L2 memory: targeted tests for `server/modules/guild-ai/memory.test.ts` and `server/modules/guild-ai/briefing.test.ts` passed.
 - HR governance: targeted tests for `server/modules/guild-ai/hr-governance.test.ts` and `server/modules/guild-ai/briefing.test.ts` passed.
 - Deployment readiness: targeted tests for `server/modules/guild-ai/deployment-readiness.test.ts` passed.

@@ -375,12 +375,14 @@ npm run check
 ```bash
 npm run build
 npm run test:api
+npm run guild:bct
 ```
 
 คาดหวังล่าสุด:
 
 - Build ผ่าน
 - API tests ผ่าน 75 files / 275 tests
+- BCT ผ่าน 16/16 stages และสร้าง `artifacts/guild-bct/BCT_RESULT.md`
 - Secretary overlay ไม่บัง CEO แบบถาวรอีก
 - Backup retention default 14 วัน และปรับได้ใน Settings
 - Backup snapshot ที่ผ่านต้องเปิด SQLite restore proof ได้
@@ -433,6 +435,7 @@ npm run test:api
 - [ ] Accounting แสดง chart/P&L/journal
 - [ ] Self-improvement proposal/advice/decision ทำงาน
 - [ ] `npm run guild:mvp-check` ผ่าน 10/10
+- [ ] `npm run guild:bct` ผ่าน 16/16 stages
 - [ ] `npm run build` ผ่าน
 - [ ] `npm run test:api` ผ่าน
 - [ ] `npm run test:web` ผ่าน
