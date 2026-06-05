@@ -1141,14 +1141,14 @@ export default function GuildAiPanel() {
           <div className="grid gap-2">
             <Metric label="Report date" value={state.pmDailyReport?.reportDate ?? "-"} />
             <Metric label="Launch score" value={state.pmDailyReport ? `${state.pmDailyReport.summary.launchScore}%` : "-"} />
-            <Metric label="Done 24h" value={state.pmDailyReport?.summary.tasks.done24h ?? 0} />
-            <Metric label="Backup restore" value={state.pmDailyReport?.summary.backup.restoreStatus ?? "-"} />
+            <Metric label="Done 24h" value={state.pmDailyReport?.summary.tasks?.done24h ?? 0} />
+            <Metric label="Backup restore" value={state.pmDailyReport?.summary.backup?.restoreStatus ?? "-"} />
             <Metric label="Lounge 24h" value={state.pmDailyReport?.summary.community?.sessions24h ?? 0} />
             <Metric
               label="Avg productivity"
               value={
-                state.pmDailyReport?.summary.operations.averageProductivityScore === null ||
-                state.pmDailyReport?.summary.operations.averageProductivityScore === undefined
+                state.pmDailyReport?.summary.operations?.averageProductivityScore === null ||
+                state.pmDailyReport?.summary.operations?.averageProductivityScore === undefined
                   ? "-"
                   : state.pmDailyReport.summary.operations.averageProductivityScore
               }

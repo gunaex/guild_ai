@@ -305,21 +305,21 @@ export type GuildAiPmDailyReport = {
     generatedAt: number;
     launchStatus: "ready_for_today" | "needs_attention" | "blocked";
     launchScore: number;
-    tasks: {
+    tasks?: {
       created24h: number;
       done24h: number;
       review24h: number;
       inProgress: number;
       blocked: number;
     };
-    finance: {
+    finance?: {
       revenue: number;
       expense: number;
       netIncome: number;
       tokenCost: number;
       tokens24h: number;
     };
-    operations: {
+    operations?: {
       activeRuntimeBindings: number;
       activeModelLimits: number;
       pendingGovernanceRequests: number;
@@ -327,7 +327,7 @@ export type GuildAiPmDailyReport = {
       memoryRecords: number;
       averageProductivityScore: number | null;
     };
-    backup: {
+    backup?: {
       latestStatus: "succeeded" | "failed" | "none";
       latestAt: number | null;
       retentionDays: number | null;
