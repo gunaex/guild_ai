@@ -34,6 +34,11 @@ The panel now shows and controls:
 - worker queue
 - memory records
 - HR reviews and governance requests
+- core stability gates
+- evaluation/benchmark cases and runs
+- prompt/policy versions
+- unified human review queue
+- memory quality status
 - self-improvement proposals and decisions
 - SGM advice
 - Community Lounge learning workflow
@@ -197,11 +202,18 @@ Added an operational health command for quick diagnosis.
 Checks include:
 
 - server session
+- core stability score and detailed gates
 - launch readiness gates
 - SGM briefing
 - active model limits
 - latest PM report
 - local Ollama availability
+
+Latest known runtime result:
+
+- `npm run guild:doctor` passed: 33/33 checks
+- core stability score: 93
+- watch-only items: local security posture and pending human decisions
 
 ## 14. Local-First MVP Checker
 
@@ -410,9 +422,10 @@ Implemented public-safe publication work:
 Latest known verification:
 
 - `npm run build` passed
-- `npm run test:api` passed: 76 test files / 277 tests
+- `npm run test:api` passed: 78 test files / 283 tests
 - `npm run test:web` passed: 25 test files / 76 tests
 - `npm run guild:mvp-check` passed: 10/10 gates
+- `npm run guild:doctor` passed: 33/33 checks, core stability score 93
 
 ## 29. Internal Quality-Control Infrastructure
 
@@ -422,6 +435,7 @@ Implemented without OpenJarvis, Qdrant, or new Chroma runtime dependencies:
 
 - Core stability API: `GET /api/guild-ai/core-stability`
 - Evaluation/benchmark tables and deterministic rule-based scoring
+- Eval runs capture active prompt/policy version IDs when available
 - Evaluation APIs:
   - `GET /api/guild-ai/evals/cases`
   - `POST /api/guild-ai/evals/cases`
@@ -458,6 +472,7 @@ Implemented without OpenJarvis, Qdrant, or new Chroma runtime dependencies:
 - MemoryProvider interface and SQLiteMemoryProvider
 - Memory provider health API: `GET /api/guild-ai/memory/providers`
 - `guild:doctor` now includes core stability summary and gates
+- Real DB migration safety was verified: memory quality columns are added before quality indexes are created on legacy databases
 
 This layer makes Guild AI safer before deeper autonomy: behavior can be benchmarked, memory can be reviewed, prompt/policy changes can be versioned, and human review items can be seen in one place.
 
