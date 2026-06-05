@@ -414,7 +414,54 @@ Latest known verification:
 - `npm run test:web` passed: 25 test files / 76 tests
 - `npm run guild:mvp-check` passed: 10/10 gates
 
-## 29. Current Note: Guild AI White Screen
+## 29. Internal Quality-Control Infrastructure
+
+Added the internal quality-control layer requested before any external L3 RAG backend.
+
+Implemented without OpenJarvis, Qdrant, or new Chroma runtime dependencies:
+
+- Core stability API: `GET /api/guild-ai/core-stability`
+- Evaluation/benchmark tables and deterministic rule-based scoring
+- Evaluation APIs:
+  - `GET /api/guild-ai/evals/cases`
+  - `POST /api/guild-ai/evals/cases`
+  - `POST /api/guild-ai/evals/run`
+  - `GET /api/guild-ai/evals/runs`
+- Default eval examples for e-commerce, software/service, and content/media guilds
+- Memory quality lifecycle fields on SQLite L2 memory:
+  - draft
+  - reviewed
+  - approved
+  - deprecated
+  - archived
+- Memory risk levels:
+  - low
+  - normal
+  - high
+  - critical
+- Memory quality API: `POST /api/guild-ai/memory/:id/quality`
+- Prompt versioning APIs:
+  - `GET /api/guild-ai/prompt-versions`
+  - `POST /api/guild-ai/prompt-versions`
+  - `POST /api/guild-ai/prompt-versions/:id/activate`
+  - `POST /api/guild-ai/prompt-versions/:id/deprecate`
+- Policy versioning APIs:
+  - `GET /api/guild-ai/policy-versions`
+  - `POST /api/guild-ai/policy-versions`
+  - `POST /api/guild-ai/policy-versions/:id/activate`
+  - `POST /api/guild-ai/policy-versions/:id/deprecate`
+- Unified human review queue APIs:
+  - `GET /api/guild-ai/review-queue`
+  - `POST /api/guild-ai/review-queue`
+  - `POST /api/guild-ai/review-queue/:id/decision`
+  - `POST /api/guild-ai/review-queue/:id/cancel`
+- MemoryProvider interface and SQLiteMemoryProvider
+- Memory provider health API: `GET /api/guild-ai/memory/providers`
+- `guild:doctor` now includes core stability summary and gates
+
+This layer makes Guild AI safer before deeper autonomy: behavior can be benchmarked, memory can be reviewed, prompt/policy changes can be versioned, and human review items can be seen in one place.
+
+## 30. Current Note: Guild AI White Screen
 
 If the Guild AI screen turns white after clicking it, first make sure the latest local commit is running.
 

@@ -361,6 +361,14 @@ npm run check
 24. ไปที่ L2 memory แล้วตรวจว่ามี memory namespace `learning`
 25. ไปที่ SGM Advisor / advice list แล้วตรวจว่ามี `Community Lounge learning suggestion`
 26. กด Generate Daily PM report อีกครั้ง แล้วตรวจว่า `Lounge 24h` มากกว่า 0 และ markdown มี Community section
+27. เรียก `GET /api/guild-ai/core-stability?guildId=ecom-001` แล้วตรวจว่าได้ score/gates
+28. เรียก eval API:
+    - `GET /api/guild-ai/evals/cases?guildId=ecom-001`
+    - `POST /api/guild-ai/evals/run`
+29. สร้าง prompt/policy version draft แล้ว activate ผ่าน API
+30. ตรวจ `GET /api/guild-ai/review-queue?guildId=ecom-001` ว่าเห็น prompt/policy/eval/manual review items
+31. สร้าง/แก้ memory quality ผ่าน `POST /api/guild-ai/memory/:id/quality`
+32. ตรวจ `GET /api/guild-ai/memory/providers` ว่า default provider เป็น `sqlite`
 
 คำสั่ง verify:
 
@@ -379,6 +387,7 @@ npm run test:api
 - Daily PM report แสดง backup/restore status
 - Worker queue เคารพ Budget Guard ก่อน process งาน
 - Community Lounge สร้าง learning memory, SGM advice, และ daily PM evidence ได้
+- Internal quality-control layer ทำงานแบบ local-first และไม่ต้องใช้ OpenJarvis/Chroma/Qdrant runtime dependency
 
 ## 15. Pass Criteria
 
@@ -429,5 +438,11 @@ npm run test:api
 - [ ] `npm run test:web` ผ่าน
 - [ ] Community Lounge completed session สร้าง learning memory และ SGM advice
 - [ ] Daily PM report แสดง Community section / Lounge 24h
+- [ ] Core stability API ตอบ score/gates
+- [ ] Eval run pass/warn/fail/skipped ทำงาน
+- [ ] Memory quality transition ทำงานและไม่ลบ memory เก่า
+- [ ] Prompt/policy version activate แล้วมี active version เดียวต่อ scope/type
+- [ ] Review queue รับ decision/cancel ได้
+- [ ] MemoryProvider health ตอบ `sqlite`
 - [ ] `bash scripts/package-guild-overlay.sh` ผ่าน
 - [ ] `npm run check` ฝั่ง main scaffold ผ่าน

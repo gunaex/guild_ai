@@ -36,12 +36,19 @@ import {
 } from "../guild-ai/deployment-readiness.ts";
 import { buildGuildLaunchReadiness } from "../guild-ai/launch-readiness.ts";
 import { getGuildVectorMemoryStatus, queryGuildRagMemory } from "../guild-ai/chroma-memory.ts";
+import { buildGuildCoreStabilitySummary } from "../guild-ai/core-stability.ts";
 import {
   getGuildCommunitySessionDetail,
   listGuildCommunityParticipants,
   listGuildCommunitySessions,
   startGuildCommunityLoungeSession,
 } from "../guild-ai/community-lounge.ts";
+import {
+  createGuildEvalCase,
+  listGuildEvalCases,
+  listGuildEvalRuns,
+  runGuildEvalCase,
+} from "../guild-ai/evaluations.ts";
 import {
   generateGuildPmDailyReport,
   getLatestGuildPmDailyReport,
@@ -56,7 +63,23 @@ import {
 } from "../guild-ai/hr-governance.ts";
 import { seedStarterChartOfAccounts, THAI_ACCOUNTING_CATEGORIES } from "../guild-ai/accounting.ts";
 import { listAiLimitEvents } from "../guild-ai/limit-events.ts";
-import { isGuildMemoryNamespace, listGuildMemories, recordGuildMemory } from "../guild-ai/memory.ts";
+import {
+  isGuildMemoryNamespace,
+  isGuildMemoryQualityStatus,
+  isGuildMemoryRiskLevel,
+  listGuildMemories,
+  recordGuildMemory,
+  updateGuildMemoryQuality,
+} from "../guild-ai/memory.ts";
+import { listMemoryProviders } from "../guild-ai/memory-provider.ts";
+import {
+  cancelGuildReviewQueueItem,
+  createGuildReviewQueueItem,
+  decideGuildReviewQueueItem,
+  isGuildReviewPriority,
+  isGuildReviewType,
+  listGuildReviewQueue,
+} from "../guild-ai/review-queue.ts";
 import {
   bootstrapGuildRuntimeWithOllama,
   listGuildRuntimeBindings,
@@ -79,6 +102,18 @@ import {
   listGuildWorkerQueue,
   processNextGuildWorkerQueueItem,
 } from "../guild-ai/worker-queue.ts";
+import {
+  activateGuildPolicyVersion,
+  activateGuildPromptVersion,
+  createGuildPolicyVersion,
+  createGuildPromptVersion,
+  deprecateGuildPolicyVersion,
+  deprecateGuildPromptVersion,
+  isPolicyType,
+  isPromptScope,
+  listGuildPolicyVersions,
+  listGuildPromptVersions,
+} from "../guild-ai/versioning.ts";
 import { insertGuildTemplate } from "../bootstrap/schema/guild-ai-seeds.ts";
 
 function asText(value: unknown): string {
@@ -105,6 +140,12 @@ function asPositiveInt(value: unknown, fallback: number, max: number): number {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < 1) return fallback;
   return Math.min(parsed, max);
+}
+
+function asBoolean(value: unknown, fallback = false): boolean {
+  if (value === true || value === "true" || value === "1" || value === 1) return true;
+  if (value === false || value === "false" || value === "0" || value === 0) return false;
+  return fallback;
 }
 
 function isAdviceCategory(value: string): boolean {
@@ -160,6 +201,46 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
       templates: templateCount.count,
       pendingUpgrades: pendingUpgradeCount.count,
       accountingCategories: THAI_ACCOUNTING_CATEGORIES,
+    });
+  });
+
+  app.get("/api/guild-ai/core-stability", async (req, res) => {
+    const guildId = asText(req.query.guildId) || "ecom-001";
+    const generatedAt = nowMs();
+    const deployment = buildGuildDeploymentReadiness({
+      guildId,
+      generatedAt,
+      host: HOST,
+      port: PORT,
+      apiAuthToken: API_AUTH_TOKEN,
+      allowedOrigins: ALLOWED_ORIGINS,
+      allowedOriginSuffixes: ALLOWED_ORIGIN_SUFFIXES,
+      logsDir: ctx.logsDir,
+      viteDev: Boolean(process.env.VITE_DEV),
+      internetProxyEnabled: process.env.GUILD_AI_HTTPS_PROXY === "1",
+    });
+    const backup = buildGuildBackupReadiness({
+      guildId,
+      generatedAt,
+      dbPath: ctx.dbPath,
+      logsDir: ctx.logsDir,
+      backupDir: resolveGuildBackupDir(ctx.dbPath),
+    });
+    const launch = buildGuildLaunchReadiness({ db, guildId, generatedAt, deployment, backup });
+    const budget = buildGuildBudgetGuardStatus(db, guildId, generatedAt);
+    const workerQueue = buildGuildWorkerQueueStatus(db, guildId, generatedAt);
+    res.json({
+      ok: true,
+      summary: await buildGuildCoreStabilitySummary({
+        db,
+        guildId,
+        generatedAt,
+        launch,
+        deployment,
+        backup,
+        budget,
+        workerQueue,
+      }),
     });
   });
 
@@ -278,6 +359,251 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
       return;
     }
     res.json({ ok: true, ...detail });
+  });
+
+  app.get("/api/guild-ai/evals/cases", (req, res) => {
+    const guildId = asText(req.query.guildId);
+    res.json({
+      ok: true,
+      cases: listGuildEvalCases(db, {
+        guildId: guildId || null,
+        enabledOnly: asBoolean(req.query.enabledOnly, false),
+        limit: asPositiveInt(req.query.limit, 50, 100),
+      }),
+    });
+  });
+
+  app.post("/api/guild-ai/evals/cases", (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    try {
+      const item = createGuildEvalCase(db, {
+        guildId: asText(body.guildId),
+        name: asText(body.name),
+        taskDescription: asText(body.taskDescription),
+        expectedBehavior: asText(body.expectedBehavior),
+        rubric: body.rubric && typeof body.rubric === "object" ? (body.rubric as Record<string, unknown>) : {},
+        tags: Array.isArray(body.tags) ? body.tags.map(String) : [],
+        enabled: body.enabled === undefined ? true : asBoolean(body.enabled, true),
+        now: nowMs(),
+      });
+      res.json({ ok: true, case: item });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.post("/api/guild-ai/evals/run", (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    try {
+      const run = runGuildEvalCase(db, {
+        guildId: asText(body.guildId),
+        caseId: asText(body.caseId) || null,
+        outputText: asText(body.outputText),
+        modelProvider: asText(body.modelProvider) || null,
+        modelName: asText(body.modelName) || null,
+        memorySnapshotId: asText(body.memorySnapshotId) || null,
+        now: nowMs(),
+      });
+      res.json({ ok: true, run });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.get("/api/guild-ai/evals/runs", (req, res) => {
+    res.json({
+      ok: true,
+      runs: listGuildEvalRuns(db, {
+        guildId: asText(req.query.guildId) || null,
+        caseId: asText(req.query.caseId) || null,
+        limit: asPositiveInt(req.query.limit, 50, 100),
+      }),
+    });
+  });
+
+  app.get("/api/guild-ai/prompt-versions", (req, res) => {
+    const guildId = asText(req.query.guildId) || "ecom-001";
+    const scope = asText(req.query.scope);
+    if (scope && !isPromptScope(scope)) {
+      res.status(400).json({ ok: false, error: "invalid prompt scope." });
+      return;
+    }
+    res.json({ ok: true, guildId, versions: listGuildPromptVersions(db, guildId, scope && isPromptScope(scope) ? scope : null) });
+  });
+
+  app.post("/api/guild-ai/prompt-versions", (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    const scope = asText(body.scope);
+    if (!isPromptScope(scope)) {
+      res.status(400).json({ ok: false, error: "invalid prompt scope." });
+      return;
+    }
+    try {
+      res.json({
+        ok: true,
+        version: createGuildPromptVersion(db, {
+          guildId: asText(body.guildId),
+          scope,
+          name: asText(body.name),
+          version: asText(body.version),
+          content: typeof body.content === "string" ? body.content : "",
+          createdBy: asText(body.createdBy) || null,
+          now: nowMs(),
+        }),
+      });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.post("/api/guild-ai/prompt-versions/:id/activate", (req, res) => {
+    try {
+      res.json({ ok: true, version: activateGuildPromptVersion(db, req.params.id, nowMs()) });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.post("/api/guild-ai/prompt-versions/:id/deprecate", (req, res) => {
+    try {
+      res.json({ ok: true, version: deprecateGuildPromptVersion(db, req.params.id, nowMs()) });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.get("/api/guild-ai/policy-versions", (req, res) => {
+    const guildId = asText(req.query.guildId) || "ecom-001";
+    const policyType = asText(req.query.policyType);
+    if (policyType && !isPolicyType(policyType)) {
+      res.status(400).json({ ok: false, error: "invalid policy type." });
+      return;
+    }
+    res.json({
+      ok: true,
+      guildId,
+      versions: listGuildPolicyVersions(db, guildId, policyType && isPolicyType(policyType) ? policyType : null),
+    });
+  });
+
+  app.post("/api/guild-ai/policy-versions", (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    const policyType = asText(body.policyType);
+    if (!isPolicyType(policyType)) {
+      res.status(400).json({ ok: false, error: "invalid policy type." });
+      return;
+    }
+    try {
+      res.json({
+        ok: true,
+        version: createGuildPolicyVersion(db, {
+          guildId: asText(body.guildId),
+          policyType,
+          name: asText(body.name),
+          version: asText(body.version),
+          content: body.content && typeof body.content === "object" ? (body.content as Record<string, unknown>) : {},
+          createdBy: asText(body.createdBy) || null,
+          now: nowMs(),
+        }),
+      });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.post("/api/guild-ai/policy-versions/:id/activate", (req, res) => {
+    try {
+      res.json({ ok: true, version: activateGuildPolicyVersion(db, req.params.id, nowMs()) });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.post("/api/guild-ai/policy-versions/:id/deprecate", (req, res) => {
+    try {
+      res.json({ ok: true, version: deprecateGuildPolicyVersion(db, req.params.id, nowMs()) });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.get("/api/guild-ai/review-queue", (req, res) => {
+    const reviewType = asText(req.query.reviewType);
+    if (reviewType && !isGuildReviewType(reviewType)) {
+      res.status(400).json({ ok: false, error: "invalid review type." });
+      return;
+    }
+    res.json({
+      ok: true,
+      items: listGuildReviewQueue(db, {
+        guildId: asText(req.query.guildId) || null,
+        status: asText(req.query.status) as never,
+        reviewType: reviewType && isGuildReviewType(reviewType) ? reviewType : null,
+        limit: asPositiveInt(req.query.limit, 50, 100),
+      }),
+    });
+  });
+
+  app.post("/api/guild-ai/review-queue", (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    const reviewType = asText(body.reviewType);
+    const priority = asText(body.priority) || "normal";
+    if (!isGuildReviewType(reviewType) || !isGuildReviewPriority(priority)) {
+      res.status(400).json({ ok: false, error: "invalid review type or priority." });
+      return;
+    }
+    try {
+      res.json({
+        ok: true,
+        item: createGuildReviewQueueItem(db, {
+          guildId: asText(body.guildId),
+          reviewType,
+          title: asText(body.title),
+          description: asText(body.description),
+          sourceTable: asText(body.sourceTable) || null,
+          sourceId: asText(body.sourceId) || null,
+          priority,
+          requestedBy: asText(body.requestedBy) || null,
+          assignedTo: asText(body.assignedTo) || null,
+          evidence: body.evidence && typeof body.evidence === "object" ? (body.evidence as Record<string, unknown>) : {},
+          now: nowMs(),
+        }),
+      });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.post("/api/guild-ai/review-queue/:id/decision", (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    const decision = asText(body.decision);
+    if (!["approved", "rejected", "needs_info"].includes(decision)) {
+      res.status(400).json({ ok: false, error: "invalid review decision." });
+      return;
+    }
+    try {
+      res.json({
+        ok: true,
+        item: decideGuildReviewQueueItem(db, {
+          id: req.params.id,
+          decision: decision as "approved" | "rejected" | "needs_info",
+          reason: asText(body.reason) || null,
+          decidedBy: asText(body.decidedBy) || null,
+          now: nowMs(),
+        }),
+      });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.post("/api/guild-ai/review-queue/:id/cancel", (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    try {
+      res.json({ ok: true, item: cancelGuildReviewQueueItem(db, { id: req.params.id, reason: asText(body.reason) || null, now: nowMs() }) });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
   });
 
   app.get("/api/guild-ai/deployment/:guildId/readiness", (req, res) => {
@@ -874,6 +1200,16 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
     res.json({ ok: true, adviceId: id, status: "open" });
   });
 
+  app.get("/api/guild-ai/memory/providers", async (_req, res) => {
+    const providers = await Promise.all(
+      listMemoryProviders(db).map(async (provider) => ({
+        name: provider.name,
+        health: await provider.health(),
+      })),
+    );
+    res.json({ ok: true, defaultProvider: "sqlite", providers });
+  });
+
   app.get("/api/guild-ai/memory/:guildId", (req, res) => {
     const guildId = req.params.guildId;
     const namespace = asText(req.query.namespace);
@@ -882,6 +1218,16 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
       return;
     }
     const memoryNamespace = namespace && isGuildMemoryNamespace(namespace) ? namespace : null;
+    const qualityStatus = asText(req.query.status);
+    const riskLevel = asText(req.query.riskLevel);
+    if (qualityStatus && !isGuildMemoryQualityStatus(qualityStatus)) {
+      res.status(400).json({ ok: false, error: "invalid memory quality status." });
+      return;
+    }
+    if (riskLevel && !isGuildMemoryRiskLevel(riskLevel)) {
+      res.status(400).json({ ok: false, error: "invalid memory risk level." });
+      return;
+    }
     res.json({
       ok: true,
       guildId,
@@ -889,9 +1235,55 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
       records: listGuildMemories(db, {
         guildId,
         namespace: memoryNamespace,
+        qualityStatus: qualityStatus && isGuildMemoryQualityStatus(qualityStatus) ? qualityStatus : null,
+        riskLevel: riskLevel && isGuildMemoryRiskLevel(riskLevel) ? riskLevel : null,
+        includeArchived: asBoolean(req.query.includeArchived, false),
         limit: asNonNegativeNumber(req.query.limit, 20),
       }),
     });
+  });
+
+  app.post("/api/guild-ai/memory/:id/quality", (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    const qualityStatus = asText(body.qualityStatus);
+    const riskLevel = asText(body.riskLevel);
+    if (!isGuildMemoryQualityStatus(qualityStatus)) {
+      res.status(400).json({ ok: false, error: "invalid memory quality status." });
+      return;
+    }
+    if (riskLevel && !isGuildMemoryRiskLevel(riskLevel)) {
+      res.status(400).json({ ok: false, error: "invalid memory risk level." });
+      return;
+    }
+    try {
+      const record = updateGuildMemoryQuality(db, {
+        id: req.params.id,
+        qualityStatus,
+        riskLevel: riskLevel && isGuildMemoryRiskLevel(riskLevel) ? riskLevel : null,
+        confidenceScore: body.confidenceScore === undefined ? null : asNonNegativeNumber(body.confidenceScore, 0),
+        approvedBy: asText(body.approvedBy) || null,
+        validUntil: body.validUntil === undefined ? null : asNonNegativeNumber(body.validUntil, 0),
+        supersedesMemoryId: asText(body.supersedesMemoryId) || null,
+        now: nowMs(),
+      });
+      if (record.risk_level === "high" || record.risk_level === "critical") {
+        createGuildReviewQueueItem(db, {
+          guildId: record.guild_id,
+          reviewType: "memory_quality",
+          title: `Review ${record.risk_level} memory`,
+          description: record.content.slice(0, 240),
+          sourceTable: "guild_memory_records",
+          sourceId: record.id,
+          priority: record.risk_level === "critical" ? "urgent" : "high",
+          requestedBy: "memory_quality",
+          evidence: { qualityStatus: record.quality_status, riskLevel: record.risk_level },
+          now: nowMs(),
+        });
+      }
+      res.json({ ok: true, record });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
   });
 
   app.get("/api/guild-ai/memory/:guildId/vector-status", async (req, res) => {
@@ -944,6 +1336,9 @@ export function registerGuildAiRoutes(ctx: RuntimeContext): void {
         namespace,
         content,
         metadata: body.metadata && typeof body.metadata === "object" ? (body.metadata as Record<string, unknown>) : {},
+        sourceType: asText(body.sourceType) || "manual_ui",
+        riskLevel: isGuildMemoryRiskLevel(asText(body.riskLevel)) ? asText(body.riskLevel) as never : "normal",
+        qualityStatus: isGuildMemoryQualityStatus(asText(body.qualityStatus)) ? asText(body.qualityStatus) as never : "draft",
         createdAt: nowMs(),
       });
       res.json({ ok: true, guildId, record });

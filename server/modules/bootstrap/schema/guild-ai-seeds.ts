@@ -3,6 +3,7 @@ import path from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 import { seedStarterChartOfAccounts } from "../../guild-ai/accounting.ts";
+import { seedDefaultGuildEvalCases } from "../../guild-ai/evaluations.ts";
 import { validateGuildTemplate, type GuildTemplateInput } from "../../guild-ai/templates.ts";
 
 type DbLike = Pick<DatabaseSync, "prepare">;
@@ -40,6 +41,7 @@ export function seedGuildAiTemplates(db: DbLike, nowMs: () => number): void {
     insertGuildTemplate(db, validation.template, nowMs());
     console.log(`[Guild AI] Seeded guild template: ${validation.template.guildId}`);
   }
+  seedDefaultGuildEvalCases(db, nowMs());
 }
 
 export function insertGuildTemplate(db: DbLike, template: GuildTemplateInput, timestamp: number): void {

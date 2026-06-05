@@ -70,6 +70,12 @@ async function main() {
   const health = (await request("/api/guild-ai/health", { headers })).body;
   add("pass", "guild health", `${health.templates} template(s), vector=${health.vectorDbProvider}`);
 
+  const core = (await request(`/api/guild-ai/core-stability?guildId=${encodeURIComponent(guildId)}`, { headers })).body.summary;
+  add(core?.score >= 70 ? "pass" : "watch", "core stability", `score=${core?.score ?? 0}, gates=${core?.gates?.length ?? 0}`);
+  for (const gate of core?.gates ?? []) {
+    add(gate.status === "pass" ? "pass" : gate.status === "watch" ? "watch" : "fail", `core:${gate.key}`, gate.detail);
+  }
+
   const templates = (await request("/api/guild-ai/templates", { headers })).body.templates ?? [];
   add(templates.length >= 3 ? "pass" : "watch", "multi-guild templates", `${templates.length} template(s)`);
 

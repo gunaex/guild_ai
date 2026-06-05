@@ -158,6 +158,7 @@ This local repo currently contains a clean Guild AI scaffold, not the upstream f
 - Added backup restore proof verification and Daily PM backup/restore status so snapshots are not trusted unless SQLite restore checks pass.
 - Added Learning Community design note for evolving the Library into an active Knowledge Steward culture loop.
 - Added Community Lounge implementation: break/idle/available agent participants, session/message storage, Knowledge Steward facilitator output, learning memory capture, SGM advice creation, Guild AI panel controls, and Daily PM community evidence.
+- Added internal quality-control infrastructure before external L3 RAG: core stability API, deterministic eval cases/runs, memory quality lifecycle, prompt/policy versioning, unified review queue, SQLite MemoryProvider interface, and `guild:doctor` core stability output.
 
 ## Verified
 
@@ -199,6 +200,25 @@ Verified fork routes:
 - `GET /api/guild-ai/community/ecom-001/sessions`
 - `POST /api/guild-ai/community/ecom-001/sessions`
 - `GET /api/guild-ai/community/sessions/:sessionId`
+- `GET /api/guild-ai/core-stability`
+- `GET /api/guild-ai/evals/cases`
+- `POST /api/guild-ai/evals/cases`
+- `POST /api/guild-ai/evals/run`
+- `GET /api/guild-ai/evals/runs`
+- `GET /api/guild-ai/prompt-versions`
+- `POST /api/guild-ai/prompt-versions`
+- `POST /api/guild-ai/prompt-versions/:id/activate`
+- `POST /api/guild-ai/prompt-versions/:id/deprecate`
+- `GET /api/guild-ai/policy-versions`
+- `POST /api/guild-ai/policy-versions`
+- `POST /api/guild-ai/policy-versions/:id/activate`
+- `POST /api/guild-ai/policy-versions/:id/deprecate`
+- `GET /api/guild-ai/review-queue`
+- `POST /api/guild-ai/review-queue`
+- `POST /api/guild-ai/review-queue/:id/decision`
+- `POST /api/guild-ai/review-queue/:id/cancel`
+- `POST /api/guild-ai/memory/:id/quality`
+- `GET /api/guild-ai/memory/providers`
 - `GET /api/guild-ai/launch/ecom-001/readiness`
 - `POST /api/guild-ai/upgrades/proposals`
 - `GET /api/guild-ai/upgrades/ecom-001`
@@ -235,9 +255,12 @@ Latest fork test result:
 - API: 72 test files passed, 272 tests passed.
 - API latest: 75 test files passed, 275 tests passed.
 - API latest after Community Lounge: 76 test files passed, 277 tests passed.
+- Targeted quality-control API/module tests: 2 files passed, 6 tests passed.
+- API latest after internal quality-control infrastructure: 78 test files passed, 283 tests passed.
 - Web: 25 test files passed, 76 tests passed.
 - Build: `npm run build` passed.
 - Local MVP acceptance: `npm run guild:mvp-check` passed, 10/10 gates.
+- Guild doctor latest: PASS 33/33, core stability score 93, watch=5.
 - L2 memory: targeted tests for `server/modules/guild-ai/memory.test.ts` and `server/modules/guild-ai/briefing.test.ts` passed.
 - HR governance: targeted tests for `server/modules/guild-ai/hr-governance.test.ts` and `server/modules/guild-ai/briefing.test.ts` passed.
 - Deployment readiness: targeted tests for `server/modules/guild-ai/deployment-readiness.test.ts` passed.
